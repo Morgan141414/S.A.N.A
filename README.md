@@ -32,6 +32,10 @@ docs/           Product, clinical behavior, and architecture notes
 - [v0.1 release readiness](docs/release_v0_1_ru.md)
 - [v0.2 specification](docs/v0_2_spec_ru.md)
 - [v0.2 release readiness](docs/release_v0_2_ru.md)
+- [v0.3 specification](docs/v0_3_spec_ru.md)
+- [Data strategy](docs/data_strategy_ru.md)
+- [Evaluation plan](docs/evaluation_plan_ru.md)
+- [v0.3 release readiness](docs/release_v0_3_ru.md)
 
 ## First Milestone
 
@@ -66,4 +70,10 @@ Run the full development cycle and generate a quality report:
 
 ```bash
 make dev-cycle
+```
+
+Run the v0.3 evaluation gate:
+
+```bash
+make evaluate
 ```
