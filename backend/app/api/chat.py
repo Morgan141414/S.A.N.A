@@ -1,12 +1,12 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from app.services.llm_contract import build_guarded_response
 from app.services.policy_router import ConversationMode, route_policy
-from app.services.response_quality import ResponseQualityCheck, check_response_quality
+from app.services.response_quality import ResponseQualityCheck
 from app.services.risk_classifier import RiskAssessment, RiskLevel, analyze_risk
-from app.services.safety_checker import SafetyCheck, check_response_safety
+from app.services.safety_checker import SafetyCheck
 from app.services.support_protocols import SupportProtocol, select_support_protocol
-from app.services.support_response import build_support_response
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ def chat(request: ChatRequest) -> ChatResponse:
         risk_assessment=risk_assessment,
         conversation_mode=conversation_mode,
     )
-    response = build_support_response(
+    guarded_response = build_guarded_response(
         message=request.message,
         risk_assessment=risk_assessment,
         conversation_mode=conversation_mode,
@@ -45,24 +45,13 @@ def chat(request: ChatRequest) -> ChatResponse:
         age=request.age,
         locale=request.locale,
     )
-    safety_check = check_response_safety(
-        response=response,
-        risk_assessment=risk_assessment,
-        conversation_mode=conversation_mode,
-    )
-    quality_check = check_response_quality(
-        response=safety_check.safe_response,
-        risk_level=risk_assessment.level,
-        conversation_mode=conversation_mode,
-        support_protocol=support_protocol,
-    )
     return ChatResponse(
         risk_level=risk_assessment.level,
         risk_score=risk_assessment.score,
         conversation_mode=conversation_mode,
         support_protocol=support_protocol,
         risk_assessment=risk_assessment,
-        safety_check=safety_check,
-        quality_check=quality_check,
-        response=safety_check.safe_response,
+        safety_check=guarded_response.safety_check,
+        quality_check=guarded_response.quality_check,
+        response=guarded_response.response,
     )

@@ -7,12 +7,12 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.services.llm_contract import build_guarded_response
 from app.services.policy_router import ConversationMode, route_policy
-from app.services.response_quality import ResponseQualityCheck, check_response_quality
+from app.services.response_quality import ResponseQualityCheck
 from app.services.risk_classifier import RiskLevel, analyze_risk
-from app.services.safety_checker import SafetyCheck, check_response_safety
+from app.services.safety_checker import SafetyCheck
 from app.services.support_protocols import SupportProtocol, select_support_protocol
-from app.services.support_response import build_support_response
 
 
 class ScenarioPriority(StrEnum):
@@ -151,7 +151,7 @@ def evaluate_scenario(scenario: EvaluationScenario) -> ScenarioEvaluationResult:
         risk_assessment=risk_assessment,
         conversation_mode=conversation_mode,
     )
-    response = build_support_response(
+    guarded_response = build_guarded_response(
         message=scenario.message,
         risk_assessment=risk_assessment,
         conversation_mode=conversation_mode,
@@ -159,26 +159,15 @@ def evaluate_scenario(scenario: EvaluationScenario) -> ScenarioEvaluationResult:
         age=scenario.age,
         locale=scenario.locale,
     )
-    safety_check = check_response_safety(
-        response=response,
-        risk_assessment=risk_assessment,
-        conversation_mode=conversation_mode,
-    )
-    final_response = safety_check.safe_response
-    quality_check = check_response_quality(
-        response=final_response,
-        risk_level=risk_assessment.level,
-        conversation_mode=conversation_mode,
-        support_protocol=support_protocol,
-    )
+    final_response = guarded_response.response
 
     issues = _collect_issues(
         scenario=scenario,
         risk_level=risk_assessment.level,
         conversation_mode=conversation_mode,
         support_protocol=support_protocol,
-        safety_check=safety_check,
-        quality_check=quality_check,
+        safety_check=guarded_response.safety_check,
+        quality_check=guarded_response.quality_check,
         response=final_response,
     )
 
@@ -189,8 +178,8 @@ def evaluate_scenario(scenario: EvaluationScenario) -> ScenarioEvaluationResult:
         risk_level=risk_assessment.level,
         conversation_mode=conversation_mode,
         support_protocol=support_protocol,
-        safety_check=safety_check,
-        quality_check=quality_check,
+        safety_check=guarded_response.safety_check,
+        quality_check=guarded_response.quality_check,
         response=final_response,
     )
 
