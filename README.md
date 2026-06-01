@@ -26,6 +26,7 @@ docs/           Product, clinical behavior, and architecture notes
 - [Technical specification](docs/technical_spec_ru.md)
 - [Clinical behavior specification](docs/clinical_behavior_spec.md)
 - [Architecture](docs/architecture.md)
+- [Development process](docs/development_process_ru.md)
 
 ## First Milestone
 
@@ -45,3 +46,13 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
+
+## Quality Gate
+
+Run all local checks before committing:
+
+```bash
+make check
+```
+
+This installs backend development dependencies, runs Ruff, and runs pytest.

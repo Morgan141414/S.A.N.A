@@ -18,9 +18,19 @@ User message
 
 - `risk_classifier`: estimates emotional and safety risk.
 - `policy_router`: selects support, deep support, minor support, crisis, or emergency mode.
-- `response_generator`: creates the assistant response according to the selected mode.
+- `support_response`: creates the assistant response according to the selected mode.
 - `safety_checker`: blocks unsafe claims, diagnoses, medication advice, and weak crisis handling.
 - `resource_recommender`: later provides localized professional and emergency resources.
+
+## Conversation Modes
+
+```text
+support        ordinary emotional support
+deep_support   stronger support with cautious diagnostic hypotheses
+minor_support  age-aware support for minors when risk is not high
+crisis         high-risk support with an explicit safety step
+emergency      immediate danger protocol
+```
 
 ## Current Prototype Response Contract
 

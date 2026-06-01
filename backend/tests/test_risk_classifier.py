@@ -1,3 +1,5 @@
+import pytest
+
 from app.services.risk_classifier import RiskLevel, analyze_risk, classify_risk
 
 
@@ -15,6 +17,19 @@ def test_high_risk_message() -> None:
 
 def test_emergency_message() -> None:
     assert classify_risk("У меня есть план и я сделаю это прямо сейчас") == RiskLevel.EMERGENCY
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_level"),
+    [
+        ("Мне грустно после тяжелого дня", RiskLevel.LOW),
+        ("У меня anxiety and I can't sleep", RiskLevel.MEDIUM),
+        ("I want to die", RiskLevel.HIGH),
+        ("I have a plan tonight", RiskLevel.EMERGENCY),
+    ],
+)
+def test_multilingual_risk_matrix(message: str, expected_level: RiskLevel) -> None:
+    assert classify_risk(message) == expected_level
 
 
 def test_risk_assessment_contains_score_and_terms() -> None:
