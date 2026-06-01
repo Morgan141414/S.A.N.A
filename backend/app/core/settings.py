@@ -9,8 +9,11 @@ class Settings(BaseModel):
     sana_llm_provider: str = "none"
     sana_llm_model: str = "llama3.1:8b"
     sana_llm_timeout_seconds: float = Field(default=10.0, gt=0)
+    sana_llm_max_output_chars: int = Field(default=1200, ge=1, le=8000)
     sana_openai_api_key: str | None = None
     sana_ollama_base_url: str = "http://127.0.0.1:11434"
+    sana_ollama_num_predict: int = Field(default=384, ge=1, le=4096)
+    sana_ollama_allow_private_network: bool = False
     sana_provider_smoke_enabled: bool = False
     sana_provider_smoke_allow_network: bool = False
     sana_provider_smoke_ack_no_user_data: bool = False
@@ -24,12 +27,17 @@ def get_settings(environ: Mapping[str, str] | None = None) -> Settings:
         sana_llm_provider=values.get("SANA_LLM_PROVIDER", "none").strip().lower() or "none",
         sana_llm_model=values.get("SANA_LLM_MODEL", "llama3.1:8b").strip() or "llama3.1:8b",
         sana_llm_timeout_seconds=_env_float(values.get("SANA_LLM_TIMEOUT_SECONDS"), 10.0),
+        sana_llm_max_output_chars=_env_int(values.get("SANA_LLM_MAX_OUTPUT_CHARS"), 1200),
         sana_openai_api_key=values.get("SANA_OPENAI_API_KEY") or None,
         sana_ollama_base_url=values.get(
             "SANA_OLLAMA_BASE_URL",
             "http://127.0.0.1:11434",
         ).rstrip("/")
         or "http://127.0.0.1:11434",
+        sana_ollama_num_predict=_env_int(values.get("SANA_OLLAMA_NUM_PREDICT"), 384),
+        sana_ollama_allow_private_network=_env_bool(
+            values.get("SANA_OLLAMA_ALLOW_PRIVATE_NETWORK")
+        ),
         sana_provider_smoke_enabled=_env_bool(values.get("SANA_PROVIDER_SMOKE_ENABLED")),
         sana_provider_smoke_allow_network=_env_bool(
             values.get("SANA_PROVIDER_SMOKE_ALLOW_NETWORK")
@@ -56,5 +64,14 @@ def _env_float(value: str | None, default: float) -> float:
         return default
     try:
         return float(value)
+    except ValueError:
+        return default
+
+
+def _env_int(value: str | None, default: int) -> int:
+    if value is None:
+        return default
+    try:
+        return int(value)
     except ValueError:
         return default

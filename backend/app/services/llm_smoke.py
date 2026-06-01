@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.core.settings import Settings, get_settings
 from app.services.llm_contract import GuardedGenerationResult, LLMProvider, build_guarded_response
-from app.services.llm_providers import get_configured_llm_provider
+from app.services.llm_providers import get_configured_llm_provider, is_ollama_base_url_allowed
 from app.services.policy_router import ConversationMode, route_policy
 from app.services.risk_classifier import RiskLevel, analyze_risk
 from app.services.support_protocols import SupportProtocol, select_support_protocol
@@ -112,6 +112,11 @@ def check_smoke_gates(settings: Settings) -> SmokeGateCheck:
         issues.append("SANA_LLM_PROVIDER must be openai or ollama")
     if settings.sana_llm_provider == "openai" and not settings.sana_openai_api_key:
         issues.append("SANA_OPENAI_API_KEY must be set")
+    if settings.sana_llm_provider == "ollama" and not is_ollama_base_url_allowed(
+        settings.sana_ollama_base_url,
+        allow_private_network=settings.sana_ollama_allow_private_network,
+    ):
+        issues.append("SANA_OLLAMA_BASE_URL must be localhost or explicitly allowed private IP")
     return SmokeGateCheck(passed=not issues, issues=issues)
 
 

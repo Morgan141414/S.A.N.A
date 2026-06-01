@@ -57,6 +57,28 @@ def test_smoke_gates_pass_for_ollama_without_api_key() -> None:
     assert gate_check.issues == []
 
 
+def test_smoke_gates_reject_external_ollama_url() -> None:
+    gate_check = check_smoke_gates(
+        get_settings(
+            {
+                "SANA_LLM_ENABLED": "true",
+                "SANA_LLM_PROVIDER": "ollama",
+                "SANA_OLLAMA_BASE_URL": "https://example.com",
+                "SANA_PROVIDER_SMOKE_ENABLED": "true",
+                "SANA_PROVIDER_SMOKE_ALLOW_NETWORK": "true",
+                "SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA": "true",
+                "SANA_PROVIDER_SMOKE_DATASET": "synthetic_only",
+            }
+        )
+    )
+
+    assert not gate_check.passed
+    assert (
+        "SANA_OLLAMA_BASE_URL must be localhost or explicitly allowed private IP"
+        in gate_check.issues
+    )
+
+
 def test_smoke_scenarios_are_adult_synthetic_low_or_medium() -> None:
     assert len(SAFE_SMOKE_SCENARIOS) >= 3
     assert all(scenario.age >= 18 for scenario in SAFE_SMOKE_SCENARIOS)

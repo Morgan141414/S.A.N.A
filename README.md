@@ -38,6 +38,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v0.3 release readiness](docs/release_v0_3_ru.md)
 - [v0.4 specification](docs/v0_4_spec_ru.md)
 - [v0.4 release readiness](docs/release_v0_4_ru.md)
+- [v1.0 local LLM runtime guardrails](docs/v1_0_spec_ru.md)
+- [v1.0 release readiness](docs/release_v1_0_ru.md)
 
 ## First Milestone
 

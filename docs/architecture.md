@@ -23,6 +23,7 @@ User message
 - `support_response`: creates the assistant response according to the selected mode.
 - `safety_checker`: blocks unsafe claims, diagnoses, medication advice, and weak crisis handling.
 - `response_quality`: validates empathy, next step, protocol-specific requirements, and crisis length.
+- `llm_providers`: optional local or external LLM adapters behind the guarded response contract.
 - `resource_recommender`: later provides localized professional and emergency resources.
 
 ## Conversation Modes
@@ -73,6 +74,27 @@ response            safe user-facing answer
 3. Add clinician or psychologist review.
 4. Fine-tune an open-source model with LoRA or QLoRA.
 5. Add preference evaluation and regression testing.
+
+## Local LLM Runtime
+
+The current local path uses an Ollama-compatible provider. It is disabled by default and can be enabled only through environment variables.
+
+Safety boundaries:
+
+- local LLM is only a candidate generator;
+- final output still passes safety and quality checks;
+- minors, crisis, emergency, and high-risk flows stay deterministic;
+- Ollama URL defaults to loopback-only;
+- private network Ollama endpoints require an explicit opt-in flag;
+- public remote Ollama URLs are rejected.
+
+Runtime budgets:
+
+```text
+SANA_LLM_TIMEOUT_SECONDS
+SANA_LLM_MAX_OUTPUT_CHARS
+SANA_OLLAMA_NUM_PREDICT
+```
 
 ## Prototype Stack
 

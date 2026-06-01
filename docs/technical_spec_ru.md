@@ -238,6 +238,20 @@ S.A.N.A. не должна:
 7. Подготовить датасет для дообучения.
 8. Провести оценку качества и безопасности.
 
+## 15. Текущий инженерный путь
+
+S.A.N.A. развивается по локальному AI-направлению без обязательной покупки внешнего API key.
+
+Текущая архитектура:
+
+- deterministic safety-first pipeline остается обязательным ядром;
+- локальная модель подключается как дополнительный кандидат ответа;
+- локальный LLM используется только там, где риск низкий или средний и пользователь совершеннолетний;
+- кризисные, emergency и minor safety сценарии не отправляются в LLM;
+- любой сбой LLM, пустой ответ, небезопасный ответ или низкое качество приводят к fallback на безопасный deterministic response.
+
+v1.0 добавляет runtime guardrails для Ollama-compatible provider: лимиты генерации, лимит длины ответа, проверку формата ответа и защиту от случайного внешнего endpoint.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.
@@ -245,7 +259,6 @@ S.A.N.A. не должна:
 - v0.6: `docs/v0_6_spec_ru.md` - LLM Contract Layer: LLMProvider interface, mock provider, prompt policy, safety wrapper, fallback и release gates.
 - v0.7: `docs/v0_7_spec_ru.md` - OpenAI provider skeleton: env settings, disabled-by-default, no secrets, fallback on provider errors/timeouts, mock-only tests и crisis/minors disabled.
 - v0.8: `docs/v0_8_spec_ru.md` - controlled provider smoke и LLM evaluation harness: manual-only, synthetic prompts only, JSON/Markdown reports, env gates, not part of dev-cycle, crisis/minors excluded и readiness gates.
-- v0.9: `docs/v0_9_spec_ru.md` - Local LLM Provider: Ollama-compatible adapter, no API key, local smoke, hardware limits, safety wrapper и fallback.
 - v0.9: `docs/v0_9_spec_ru.md` - Local LLM Provider path: Ollama/llama.cpp-compatible local or self-hosted provider, no paid API key, disabled-by-default, local smoke, hardware limits, safety wrapper/fallback, no real user data и crisis/minors excluded.
 
 ## 15. Главный принцип
