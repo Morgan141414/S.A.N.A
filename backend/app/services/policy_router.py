@@ -9,11 +9,16 @@ class ConversationMode(StrEnum):
     CRISIS = "crisis"
     EMERGENCY = "emergency"
     MINOR_SUPPORT = "minor_support"
+    MINOR_SAFETY = "minor_safety"
 
 
 def route_policy(risk_assessment: RiskAssessment, age: int | None = None) -> ConversationMode:
     if risk_assessment.level == RiskLevel.EMERGENCY:
         return ConversationMode.EMERGENCY
+
+    if age is not None and age < 18:
+        if risk_assessment.features.abuse_or_exploitation >= 0.5:
+            return ConversationMode.MINOR_SAFETY
 
     if risk_assessment.level == RiskLevel.HIGH:
         return ConversationMode.CRISIS

@@ -17,6 +17,7 @@ class RiskFeatures(BaseModel):
     anxiety_signs: float = Field(ge=0.0, le=1.0)
     self_harm_signs: float = Field(ge=0.0, le=1.0)
     isolation_signs: float = Field(ge=0.0, le=1.0)
+    abuse_or_exploitation: float = Field(ge=0.0, le=1.0)
     immediate_plan: float = Field(ge=0.0, le=1.0)
 
 
@@ -84,6 +85,22 @@ FEATURE_TERMS: dict[str, tuple[str, ...]] = {
         "alone",
         "lonely",
     ),
+    "abuse_or_exploitation": (
+        "меня бьют",
+        "бьют дома",
+        "насилие дома",
+        "приставал",
+        "трогал меня",
+        "заставляет молчать",
+        "опасно дома",
+        "боюсь идти домой",
+        "abuse",
+        "abused",
+        "unsafe at home",
+        "touches me",
+        "forced me",
+        "threatened me",
+    ),
     "immediate_plan": (
         "сейчас убью себя",
         "сегодня покончу",
@@ -114,6 +131,7 @@ WEIGHTS = {
     "anxiety_signs": 1.0,
     "self_harm_signs": 3.0,
     "isolation_signs": 1.0,
+    "abuse_or_exploitation": 2.5,
     "immediate_plan": 5.0,
 }
 
@@ -142,6 +160,8 @@ def analyze_risk(message: str) -> RiskAssessment:
 
     if features.suicidal_ideation >= 0.5 or features.self_harm_signs >= 0.5:
         level = max(level, RiskLevel.HIGH, key=_risk_order)
+    elif features.abuse_or_exploitation >= 0.5:
+        level = max(level, RiskLevel.MEDIUM, key=_risk_order)
     elif _has_non_crisis_distress(features):
         level = max(RiskLevel.MEDIUM, level, key=_risk_order)
         if level == RiskLevel.HIGH:
@@ -175,6 +195,7 @@ def _score_features(features: RiskFeatures) -> float:
         + WEIGHTS["anxiety_signs"] * features.anxiety_signs
         + WEIGHTS["self_harm_signs"] * features.self_harm_signs
         + WEIGHTS["isolation_signs"] * features.isolation_signs
+        + WEIGHTS["abuse_or_exploitation"] * features.abuse_or_exploitation
         + WEIGHTS["immediate_plan"] * features.immediate_plan
         + BIAS
     )
@@ -223,6 +244,6 @@ def _build_rationale(level: RiskLevel, matched_terms: list[str]) -> str:
         return "Найдены маркеры высокого риска, связанные с самоповреждением или смертью."
 
     if level == RiskLevel.MEDIUM:
-        return "Найдены маркеры устойчивого эмоционального неблагополучия."
+        return "Найдены маркеры эмоционального неблагополучия или небезопасной ситуации."
 
     return "Найдены отдельные признаки эмоционального напряжения."

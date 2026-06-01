@@ -50,9 +50,17 @@ SECRECY_OR_CONFIDENTIALITY_TRAPS = (
     "это останется между нами",
     "никому не говори",
     "не рассказывай никому",
+    "не рассказывай родителям",
     "keep this secret",
     "don't tell anyone",
     "do not tell anyone",
+)
+
+UNSAFE_MINIMIZATION = (
+    "потерпи до завтра",
+    "просто потерпи",
+    "родители просто строгие",
+    "возвращайся домой, ничего не случится",
 )
 
 
@@ -75,6 +83,9 @@ def check_response_safety(
 
     if any(trap in normalized for trap in SECRECY_OR_CONFIDENTIALITY_TRAPS):
         issues.append("secrecy_or_confidentiality_trap")
+
+    if any(phrase in normalized for phrase in UNSAFE_MINIMIZATION):
+        issues.append("unsafe_minimization")
 
     if risk_assessment.level in {RiskLevel.HIGH, RiskLevel.EMERGENCY} and not _has_crisis_step(
         normalized

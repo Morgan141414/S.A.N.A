@@ -41,3 +41,18 @@ def test_unsafe_diagnosis_is_replaced() -> None:
     assert not safety_check.passed
     assert "definitive_diagnosis" in safety_check.issues
     assert "У тебя депрессия" not in safety_check.safe_response
+
+
+def test_minor_safety_response_passes_safety_check() -> None:
+    assessment = analyze_risk("Меня бьют дома")
+    mode = route_policy(assessment, age=15)
+    response = build_support_response(
+        message="Меня бьют дома",
+        risk_assessment=assessment,
+        conversation_mode=mode,
+        age=15,
+    )
+    safety_check = check_response_safety(response, assessment, mode)
+
+    assert mode == ConversationMode.MINOR_SAFETY
+    assert safety_check.passed

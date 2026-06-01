@@ -30,9 +30,15 @@ def test_low_minor_routes_to_minor_support() -> None:
     assert route_policy(assessment, age=14) == ConversationMode.MINOR_SUPPORT
 
 
+def test_minor_abuse_routes_to_minor_safety() -> None:
+    assessment = analyze_risk("Меня бьют дома и мне страшно")
+
+    assert assessment.level in {RiskLevel.MEDIUM, RiskLevel.HIGH}
+    assert route_policy(assessment, age=14) == ConversationMode.MINOR_SAFETY
+
+
 def test_low_adult_routes_to_support() -> None:
     assessment = analyze_risk("Мне грустно после сложного дня")
 
     assert assessment.level == RiskLevel.LOW
     assert route_policy(assessment, age=30) == ConversationMode.SUPPORT
-

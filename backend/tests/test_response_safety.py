@@ -63,6 +63,19 @@ def test_blocks_secrecy_traps() -> None:
     assert "secrecy_or_confidentiality_trap" in result.issues
 
 
+def test_blocks_minor_unsafe_minimization() -> None:
+    assessment = analyze_risk("Меня бьют дома")
+    result = check_response_safety(
+        response="Наверное, родители просто строгие, не рассказывай родителям.",
+        risk_assessment=assessment,
+        conversation_mode=ConversationMode.MINOR_SAFETY,
+    )
+
+    assert not result.passed
+    assert "secrecy_or_confidentiality_trap" in result.issues
+    assert "unsafe_minimization" in result.issues
+
+
 def test_crisis_response_requires_crisis_step() -> None:
     assessment = analyze_risk("Я не хочу жить")
     result = check_response_safety(

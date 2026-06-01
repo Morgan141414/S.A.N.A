@@ -28,6 +28,7 @@ User message
 support        ordinary emotional support
 deep_support   stronger support with cautious diagnostic hypotheses
 minor_support  age-aware support for minors when risk is not high
+minor_safety   minor safety support for abuse, exploitation, or unsafe home signs
 crisis         high-risk support with an explicit safety step
 emergency      immediate danger protocol
 ```
