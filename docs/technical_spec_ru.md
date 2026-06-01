@@ -252,6 +252,8 @@ S.A.N.A. развивается по локальному AI-направлен�
 
 v1.0 добавляет runtime guardrails для Ollama-compatible provider: лимиты генерации, лимит длины ответа, проверку формата ответа и защиту от случайного внешнего endpoint.
 
+v1.1 добавляет preflight-проверку локального Ollama-compatible provider перед ручным smoke: endpoint должен отвечать на `/api/tags`, а модель из `SANA_LLM_MODEL` должна быть доступна до начала генерации.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from app.core.settings import get_settings
 from app.services.llm_contract import LLMGenerationRequest, build_prompt_policy
 from app.services.llm_providers import (
+    LLMPreflightResult,
     OllamaLLMProvider,
     OpenAILLMProvider,
     get_configured_llm_provider,
@@ -29,10 +30,13 @@ class FakeOpenAIClient:
 
 
 class FakeOllamaResponse:
-    def __init__(self, payload: object) -> None:
+    def __init__(self, payload: object, raises_status: bool = False) -> None:
         self._payload = payload
+        self._raises_status = raises_status
 
     def raise_for_status(self) -> None:
+        if self._raises_status:
+            raise RuntimeError("status error")
         return None
 
     def json(self) -> object:
@@ -40,14 +44,25 @@ class FakeOllamaResponse:
 
 
 class FakeOllamaClient:
-    def __init__(self, payload: object) -> None:
+    def __init__(
+        self,
+        payload: object,
+        tags_payload: object | None = None,
+        raises_status: bool = False,
+    ) -> None:
         self._payload = payload
+        self._tags_payload = tags_payload or {"models": [{"name": "llama3.1:8b"}]}
+        self._raises_status = raises_status
         self.calls: list[dict[str, object]] = []
         self.closed = False
 
     def post(self, url: str, json: dict[str, object]):
         self.calls.append({"url": url, "json": json})
-        return FakeOllamaResponse(self._payload)
+        return FakeOllamaResponse(self._payload, raises_status=self._raises_status)
+
+    def get(self, url: str):
+        self.calls.append({"url": url})
+        return FakeOllamaResponse(self._tags_payload, raises_status=self._raises_status)
 
     def close(self) -> None:
         self.closed = True
@@ -224,6 +239,62 @@ def test_ollama_provider_uses_generate_api_with_system_policy() -> None:
             },
         }
     ]
+
+
+def test_ollama_provider_preflight_passes_when_model_exists() -> None:
+    client = FakeOllamaClient(
+        {"response": "ok"},
+        tags_payload={"models": [{"name": "llama3.1:8b"}, {"name": "mistral:7b"}]},
+    )
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    result = provider.preflight()
+
+    assert result == LLMPreflightResult(
+        passed=True,
+        provider_name="ollama",
+        model="llama3.1:8b",
+    )
+    assert client.calls == [{"url": "http://localhost:11434/api/tags"}]
+
+
+def test_ollama_provider_preflight_fails_when_model_is_missing() -> None:
+    client = FakeOllamaClient(
+        {"response": "ok"},
+        tags_payload={"models": [{"name": "mistral:7b"}]},
+    )
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    result = provider.preflight()
+
+    assert not result.passed
+    assert result.issues == ["ollama_model_missing"]
+
+
+def test_ollama_provider_preflight_fails_when_endpoint_is_unreachable() -> None:
+    client = FakeOllamaClient(
+        {"response": "ok"},
+        tags_payload={"models": [{"name": "llama3.1:8b"}]},
+        raises_status=True,
+    )
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    result = provider.preflight()
+
+    assert not result.passed
+    assert result.issues == ["ollama_endpoint_unreachable"]
 
 
 def test_ollama_provider_limits_long_output() -> None:

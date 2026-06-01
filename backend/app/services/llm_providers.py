@@ -3,9 +3,17 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+from pydantic import BaseModel, Field
 
 from app.core.settings import Settings, get_settings
 from app.services.llm_contract import LLMGenerationRequest, LLMGenerationResult, LLMProvider
+
+
+class LLMPreflightResult(BaseModel):
+    passed: bool
+    provider_name: str
+    model: str | None = None
+    issues: list[str] = Field(default_factory=list)
 
 
 class OpenAILLMProvider:
@@ -24,6 +32,13 @@ class OpenAILLMProvider:
         self._timeout_seconds = timeout_seconds
         self._max_output_chars = max_output_chars
         self._client = client
+
+    def preflight(self) -> LLMPreflightResult:
+        return LLMPreflightResult(
+            passed=True,
+            provider_name=self.name,
+            model=self.model,
+        )
 
     def generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
         client = self._client or self._build_client()
@@ -63,6 +78,38 @@ class OllamaLLMProvider:
         self._max_output_chars = max_output_chars
         self._num_predict = num_predict
         self._client = client
+
+    def preflight(self) -> LLMPreflightResult:
+        created_client = self._client is None
+        client = self._client or httpx.Client(timeout=self._timeout_seconds)
+        try:
+            response = client.get(f"{self.base_url}/api/tags")
+            response.raise_for_status()
+            payload = response.json()
+        except Exception:
+            return LLMPreflightResult(
+                passed=False,
+                provider_name=self.name,
+                model=self.model,
+                issues=["ollama_endpoint_unreachable"],
+            )
+        finally:
+            if created_client:
+                client.close()
+
+        available_models = _extract_ollama_model_names(payload)
+        if self.model not in available_models:
+            return LLMPreflightResult(
+                passed=False,
+                provider_name=self.name,
+                model=self.model,
+                issues=["ollama_model_missing"],
+            )
+        return LLMPreflightResult(
+            passed=True,
+            provider_name=self.name,
+            model=self.model,
+        )
 
     def generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
         created_client = self._client is None
@@ -152,6 +199,24 @@ def _extract_ollama_response_text(payload: Any) -> str:
     if not isinstance(text, str):
         raise ValueError("ollama_response_must_be_string")
     return text
+
+
+def _extract_ollama_model_names(payload: Any) -> set[str]:
+    if not isinstance(payload, dict):
+        raise ValueError("ollama_tags_must_be_object")
+
+    models = payload.get("models", [])
+    if not isinstance(models, list):
+        raise ValueError("ollama_tags_models_must_be_list")
+
+    model_names: set[str] = set()
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        name = model.get("name")
+        if isinstance(name, str):
+            model_names.add(name)
+    return model_names
 
 
 def _limit_text(text: str, max_chars: int) -> str:

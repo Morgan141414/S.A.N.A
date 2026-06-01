@@ -55,6 +55,11 @@ class SmokeGateCheck(BaseModel):
     issues: list[str]
 
 
+class SmokePreflightCheck(BaseModel):
+    passed: bool
+    issues: list[str]
+
+
 SAFE_SMOKE_SCENARIOS = [
     SmokeScenario(
         id="smoke_low_general_001",
@@ -118,6 +123,18 @@ def check_smoke_gates(settings: Settings) -> SmokeGateCheck:
     ):
         issues.append("SANA_OLLAMA_BASE_URL must be localhost or explicitly allowed private IP")
     return SmokeGateCheck(passed=not issues, issues=issues)
+
+
+def check_provider_preflight(provider: LLMProvider) -> SmokePreflightCheck:
+    preflight = getattr(provider, "preflight", None)
+    if not callable(preflight):
+        return SmokePreflightCheck(passed=True, issues=[])
+
+    result = preflight()
+    return SmokePreflightCheck(
+        passed=result.passed,
+        issues=result.issues,
+    )
 
 
 def write_smoke_report(report: SmokeReport, output_path: Path) -> None:
@@ -239,6 +256,12 @@ def main() -> int:
             "LLM smoke skipped: provider is not configured even though smoke gates passed.",
             file=sys.stderr,
         )
+        return 2
+    preflight_check = check_provider_preflight(provider)
+    if not preflight_check.passed:
+        print("LLM smoke skipped. Provider preflight failed:", file=sys.stderr)
+        for issue in preflight_check.issues:
+            print(f"- {issue}", file=sys.stderr)
         return 2
     report = run_smoke(provider)
     write_smoke_report(report, output_path)

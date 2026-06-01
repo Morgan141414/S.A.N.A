@@ -2,13 +2,26 @@ from pathlib import Path
 
 from app.core.settings import get_settings
 from app.services.llm_contract import MockLLMProvider
+from app.services.llm_providers import LLMPreflightResult
 from app.services.llm_smoke import (
     SAFE_SMOKE_SCENARIOS,
+    check_provider_preflight,
     check_smoke_gates,
     run_smoke,
     write_smoke_markdown_report,
     write_smoke_report,
 )
+
+
+class PreflightProvider(MockLLMProvider):
+    name = "preflight"
+
+    def __init__(self, response: str, preflight_result: LLMPreflightResult) -> None:
+        super().__init__(response)
+        self._preflight_result = preflight_result
+
+    def preflight(self) -> LLMPreflightResult:
+        return self._preflight_result
 
 
 def test_smoke_gates_reject_default_environment() -> None:
@@ -84,6 +97,32 @@ def test_smoke_scenarios_are_adult_synthetic_low_or_medium() -> None:
     assert all(scenario.age >= 18 for scenario in SAFE_SMOKE_SCENARIOS)
     assert all("@" not in scenario.message for scenario in SAFE_SMOKE_SCENARIOS)
     assert all("http" not in scenario.message for scenario in SAFE_SMOKE_SCENARIOS)
+
+
+def test_provider_preflight_passes_when_provider_has_no_preflight() -> None:
+    provider = MockLLMProvider("Я рядом. Что сейчас тяжелее всего?")
+
+    result = check_provider_preflight(provider)
+
+    assert result.passed
+    assert result.issues == []
+
+
+def test_provider_preflight_returns_provider_issues() -> None:
+    provider = PreflightProvider(
+        "Я рядом. Что сейчас тяжелее всего?",
+        LLMPreflightResult(
+            passed=False,
+            provider_name="ollama",
+            model="llama3.1:8b",
+            issues=["ollama_model_missing"],
+        ),
+    )
+
+    result = check_provider_preflight(provider)
+
+    assert not result.passed
+    assert result.issues == ["ollama_model_missing"]
 
 
 def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:

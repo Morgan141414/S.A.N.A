@@ -96,6 +96,17 @@ SANA_LLM_MAX_OUTPUT_CHARS
 SANA_OLLAMA_NUM_PREDICT
 ```
 
+Manual smoke runs perform a local provider preflight before generation:
+
+```text
+GET /api/tags
+  -> endpoint reachable?
+  -> configured model present?
+  -> allow synthetic smoke generation
+```
+
+If preflight fails, smoke exits before any generation call.
+
 ## Prototype Stack
 
 - Python
