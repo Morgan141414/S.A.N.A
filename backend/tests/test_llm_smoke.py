@@ -16,7 +16,7 @@ def test_smoke_gates_reject_default_environment() -> None:
 
     assert not gate_check.passed
     assert "SANA_PROVIDER_SMOKE_ENABLED must be true" in gate_check.issues
-    assert "SANA_OPENAI_API_KEY must be set" in gate_check.issues
+    assert "SANA_LLM_PROVIDER must be openai or ollama" in gate_check.issues
 
 
 def test_smoke_gates_pass_only_with_explicit_manual_flags() -> None:
@@ -26,6 +26,25 @@ def test_smoke_gates_pass_only_with_explicit_manual_flags() -> None:
                 "SANA_LLM_ENABLED": "true",
                 "SANA_LLM_PROVIDER": "openai",
                 "SANA_OPENAI_API_KEY": "test-key",
+                "SANA_PROVIDER_SMOKE_ENABLED": "true",
+                "SANA_PROVIDER_SMOKE_ALLOW_NETWORK": "true",
+                "SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA": "true",
+                "SANA_PROVIDER_SMOKE_DATASET": "synthetic_only",
+            }
+        )
+    )
+
+    assert gate_check.passed
+    assert gate_check.issues == []
+
+
+def test_smoke_gates_pass_for_ollama_without_api_key() -> None:
+    gate_check = check_smoke_gates(
+        get_settings(
+            {
+                "SANA_LLM_ENABLED": "true",
+                "SANA_LLM_PROVIDER": "ollama",
+                "SANA_LLM_MODEL": "llama3.1:8b",
                 "SANA_PROVIDER_SMOKE_ENABLED": "true",
                 "SANA_PROVIDER_SMOKE_ALLOW_NETWORK": "true",
                 "SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA": "true",

@@ -108,9 +108,9 @@ def check_smoke_gates(settings: Settings) -> SmokeGateCheck:
         issues.append("SANA_PROVIDER_SMOKE_DATASET must be synthetic_only")
     if not settings.sana_llm_enabled:
         issues.append("SANA_LLM_ENABLED must be true")
-    if settings.sana_llm_provider != "openai":
-        issues.append("SANA_LLM_PROVIDER must be openai")
-    if not settings.sana_openai_api_key:
+    if settings.sana_llm_provider not in {"openai", "ollama"}:
+        issues.append("SANA_LLM_PROVIDER must be openai or ollama")
+    if settings.sana_llm_provider == "openai" and not settings.sana_openai_api_key:
         issues.append("SANA_OPENAI_API_KEY must be set")
     return SmokeGateCheck(passed=not issues, issues=issues)
 
