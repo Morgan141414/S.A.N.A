@@ -254,6 +254,8 @@ v1.0 добавляет runtime guardrails для Ollama-compatible provider: л
 
 v1.1 добавляет preflight-проверку локального Ollama-compatible provider перед ручным smoke: endpoint должен отвечать на `/api/tags`, а модель из `SANA_LLM_MODEL` должна быть доступна до начала генерации.
 
+v1.2 добавляет таксономию ошибок локального provider: timeout, HTTP error, connection error, invalid JSON и malformed Ollama payload должны вести к безопасному fallback с понятным `blocked_reason`.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.

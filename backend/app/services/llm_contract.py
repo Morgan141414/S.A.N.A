@@ -124,7 +124,8 @@ def build_guarded_response(
     )
     try:
         llm_result = llm_provider.generate(request)
-    except Exception:
+    except Exception as exc:
+        blocked_reason = getattr(exc, "reason", "llm_provider_error")
         return _finalize_response(
             response=deterministic_response,
             risk_assessment=risk_assessment,
@@ -133,7 +134,7 @@ def build_guarded_response(
             provider_used=True,
             provider_name=getattr(llm_provider, "name", None),
             fallback_used=True,
-            blocked_reason="llm_provider_error",
+            blocked_reason=blocked_reason,
         )
 
     if not llm_result.text.strip():

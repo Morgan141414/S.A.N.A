@@ -16,6 +16,12 @@ class LLMPreflightResult(BaseModel):
     issues: list[str] = Field(default_factory=list)
 
 
+class LLMProviderError(Exception):
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
 class OpenAILLMProvider:
     name = "openai"
 
@@ -86,6 +92,13 @@ class OllamaLLMProvider:
             response = client.get(f"{self.base_url}/api/tags")
             response.raise_for_status()
             payload = response.json()
+        except (httpx.TimeoutException, TimeoutError):
+            return LLMPreflightResult(
+                passed=False,
+                provider_name=self.name,
+                model=self.model,
+                issues=["ollama_timeout"],
+            )
         except Exception:
             return LLMPreflightResult(
                 passed=False,
@@ -130,11 +143,24 @@ class OllamaLLMProvider:
             )
             response.raise_for_status()
             payload = response.json()
+        except (httpx.TimeoutException, TimeoutError) as exc:
+            raise LLMProviderError("llm_provider_timeout") from exc
+        except httpx.HTTPStatusError as exc:
+            raise LLMProviderError("llm_provider_http_error") from exc
+        except httpx.RequestError as exc:
+            raise LLMProviderError("llm_provider_connection_error") from exc
+        except ValueError as exc:
+            raise LLMProviderError("llm_provider_invalid_json") from exc
+        except Exception as exc:
+            raise LLMProviderError("llm_provider_error") from exc
         finally:
             if created_client:
                 client.close()
 
-        text = _extract_ollama_response_text(payload)
+        try:
+            text = _extract_ollama_response_text(payload)
+        except ValueError as exc:
+            raise LLMProviderError(str(exc)) from exc
         return LLMGenerationResult(
             text=_limit_text(text, self._max_output_chars),
             provider_name=self.name,

@@ -1,9 +1,12 @@
 from types import SimpleNamespace
 
+import httpx
+
 from app.core.settings import get_settings
 from app.services.llm_contract import LLMGenerationRequest, build_prompt_policy
 from app.services.llm_providers import (
     LLMPreflightResult,
+    LLMProviderError,
     OllamaLLMProvider,
     OpenAILLMProvider,
     get_configured_llm_provider,
@@ -30,16 +33,26 @@ class FakeOpenAIClient:
 
 
 class FakeOllamaResponse:
-    def __init__(self, payload: object, raises_status: bool = False) -> None:
+    def __init__(
+        self,
+        payload: object,
+        raises_status: bool = False,
+        raises_json: bool = False,
+    ) -> None:
         self._payload = payload
         self._raises_status = raises_status
+        self._raises_json = raises_json
 
     def raise_for_status(self) -> None:
         if self._raises_status:
-            raise RuntimeError("status error")
+            request = httpx.Request("POST", "http://localhost:11434/api/generate")
+            response = httpx.Response(500, request=request)
+            raise httpx.HTTPStatusError("status error", request=request, response=response)
         return None
 
     def json(self) -> object:
+        if self._raises_json:
+            raise ValueError("invalid json")
         return self._payload
 
 
@@ -49,20 +62,44 @@ class FakeOllamaClient:
         payload: object,
         tags_payload: object | None = None,
         raises_status: bool = False,
+        raises_json: bool = False,
+        raises_timeout: bool = False,
+        raises_request: bool = False,
     ) -> None:
         self._payload = payload
         self._tags_payload = tags_payload or {"models": [{"name": "llama3.1:8b"}]}
         self._raises_status = raises_status
+        self._raises_json = raises_json
+        self._raises_timeout = raises_timeout
+        self._raises_request = raises_request
         self.calls: list[dict[str, object]] = []
         self.closed = False
 
     def post(self, url: str, json: dict[str, object]):
         self.calls.append({"url": url, "json": json})
-        return FakeOllamaResponse(self._payload, raises_status=self._raises_status)
+        if self._raises_timeout:
+            raise httpx.TimeoutException("timed out")
+        if self._raises_request:
+            request = httpx.Request("POST", url)
+            raise httpx.RequestError("connection failed", request=request)
+        return FakeOllamaResponse(
+            self._payload,
+            raises_status=self._raises_status,
+            raises_json=self._raises_json,
+        )
 
     def get(self, url: str):
         self.calls.append({"url": url})
-        return FakeOllamaResponse(self._tags_payload, raises_status=self._raises_status)
+        if self._raises_timeout:
+            raise httpx.TimeoutException("timed out")
+        if self._raises_request:
+            request = httpx.Request("GET", url)
+            raise httpx.RequestError("connection failed", request=request)
+        return FakeOllamaResponse(
+            self._tags_payload,
+            raises_status=self._raises_status,
+            raises_json=self._raises_json,
+        )
 
     def close(self) -> None:
         self.closed = True
@@ -297,6 +334,20 @@ def test_ollama_provider_preflight_fails_when_endpoint_is_unreachable() -> None:
     assert result.issues == ["ollama_endpoint_unreachable"]
 
 
+def test_ollama_provider_preflight_reports_timeout() -> None:
+    client = FakeOllamaClient({"response": "ok"}, raises_timeout=True)
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    result = provider.preflight()
+
+    assert not result.passed
+    assert result.issues == ["ollama_timeout"]
+
+
 def test_ollama_provider_limits_long_output() -> None:
     client = FakeOllamaClient({"response": "a" * 20})
     provider = OllamaLLMProvider(
@@ -321,8 +372,9 @@ def test_ollama_provider_rejects_malformed_response_text() -> None:
 
     try:
         provider.generate(_request())
-    except ValueError as exc:
+    except LLMProviderError as exc:
         assert str(exc) == "ollama_response_must_be_string"
+        assert exc.reason == "ollama_response_must_be_string"
     else:
         raise AssertionError("Expected malformed Ollama payload to raise ValueError")
 
@@ -337,7 +389,72 @@ def test_ollama_provider_rejects_non_object_response_payload() -> None:
 
     try:
         provider.generate(_request())
-    except ValueError as exc:
+    except LLMProviderError as exc:
         assert str(exc) == "ollama_response_must_be_object"
+        assert exc.reason == "ollama_response_must_be_object"
     else:
         raise AssertionError("Expected malformed Ollama payload to raise ValueError")
+
+
+def test_ollama_provider_maps_timeout_error() -> None:
+    client = FakeOllamaClient({"response": "ok"}, raises_timeout=True)
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    try:
+        provider.generate(_request())
+    except LLMProviderError as exc:
+        assert exc.reason == "llm_provider_timeout"
+    else:
+        raise AssertionError("Expected timeout to raise LLMProviderError")
+
+
+def test_ollama_provider_maps_http_status_error() -> None:
+    client = FakeOllamaClient({"response": "ok"}, raises_status=True)
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    try:
+        provider.generate(_request())
+    except LLMProviderError as exc:
+        assert exc.reason == "llm_provider_http_error"
+    else:
+        raise AssertionError("Expected HTTP status to raise LLMProviderError")
+
+
+def test_ollama_provider_maps_connection_error() -> None:
+    client = FakeOllamaClient({"response": "ok"}, raises_request=True)
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    try:
+        provider.generate(_request())
+    except LLMProviderError as exc:
+        assert exc.reason == "llm_provider_connection_error"
+    else:
+        raise AssertionError("Expected request error to raise LLMProviderError")
+
+
+def test_ollama_provider_maps_invalid_json_error() -> None:
+    client = FakeOllamaClient({"response": "ok"}, raises_json=True)
+    provider = OllamaLLMProvider(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        client=client,
+    )
+
+    try:
+        provider.generate(_request())
+    except LLMProviderError as exc:
+        assert exc.reason == "llm_provider_invalid_json"
+    else:
+        raise AssertionError("Expected invalid JSON to raise LLMProviderError")

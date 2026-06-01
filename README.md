@@ -42,6 +42,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.0 release readiness](docs/release_v1_0_ru.md)
 - [v1.1 local LLM preflight](docs/v1_1_spec_ru.md)
 - [v1.1 release readiness](docs/release_v1_1_ru.md)
+- [v1.2 local LLM error taxonomy](docs/v1_2_spec_ru.md)
+- [v1.2 release readiness](docs/release_v1_2_ru.md)
 
 ## First Milestone
 

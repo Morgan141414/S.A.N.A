@@ -107,6 +107,20 @@ GET /api/tags
 
 If preflight fails, smoke exits before any generation call.
 
+Provider failures are normalized into safe internal reasons before fallback:
+
+```text
+llm_provider_timeout
+llm_provider_http_error
+llm_provider_connection_error
+llm_provider_invalid_json
+ollama_response_must_be_object
+ollama_response_must_be_string
+llm_provider_error
+```
+
+These reasons are diagnostic metadata, not user-facing raw errors.
+
 ## Prototype Stack
 
 - Python

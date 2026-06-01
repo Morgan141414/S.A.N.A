@@ -17,6 +17,15 @@ class ExplodingProvider:
         raise TimeoutError("provider timed out")
 
 
+class CategorizedFailingProvider:
+    name = "categorized"
+
+    def generate(self, request):
+        error = RuntimeError("invalid json")
+        error.reason = "llm_provider_invalid_json"
+        raise error
+
+
 def _pipeline_inputs(message: str, age: int | None = 25):
     assessment = analyze_risk(message)
     mode = route_policy(assessment, age=age)
@@ -135,6 +144,27 @@ def test_provider_error_falls_back_without_raising() -> None:
     assert result.provider_name == "exploding"
     assert result.fallback_used
     assert result.blocked_reason == "llm_provider_error"
+    assert result.response == expected
+
+
+def test_provider_error_preserves_categorized_blocked_reason() -> None:
+    message = "Мне грустно после тяжелого дня"
+    assessment, mode, protocol = _pipeline_inputs(message, age=25)
+    expected = build_support_response(message, assessment, mode, protocol, age=25)
+
+    result = build_guarded_response(
+        message,
+        assessment,
+        mode,
+        protocol,
+        age=25,
+        llm_provider=CategorizedFailingProvider(),
+    )
+
+    assert result.provider_used
+    assert result.provider_name == "categorized"
+    assert result.fallback_used
+    assert result.blocked_reason == "llm_provider_invalid_json"
     assert result.response == expected
 
 
