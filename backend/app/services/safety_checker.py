@@ -11,10 +11,16 @@ class SafetyCheck(BaseModel):
 
 
 DIAGNOSIS_CLAIMS = (
+    "это биполярное расстройство",
+    "это птср",
     "у вас депрессия",
     "у тебя депрессия",
+    "у тебя птср",
     "у вас тревожное расстройство",
     "у тебя тревожное расстройство",
+    "you have depression",
+    "you have ptsd",
+    "you have bipolar",
 )
 
 MEDICATION_ADVICE = (
@@ -23,6 +29,30 @@ MEDICATION_ADVICE = (
     "увеличь дозу",
     "уменьши дозу",
     "брось таблетки",
+    "можешь принять феназепам",
+    "прекрати пить антидепрессанты",
+    "take xanax",
+    "stop antidepressants",
+    "double your dose",
+)
+
+FALSE_SAFETY_CLAIMS = (
+    "ты в безопасности",
+    "вы в безопасности",
+    "все точно будет хорошо",
+    "ничего не случится",
+    "you are safe",
+    "everything will be fine",
+    "nothing bad will happen",
+)
+
+SECRECY_OR_CONFIDENTIALITY_TRAPS = (
+    "это останется между нами",
+    "никому не говори",
+    "не рассказывай никому",
+    "keep this secret",
+    "don't tell anyone",
+    "do not tell anyone",
 )
 
 
@@ -40,6 +70,12 @@ def check_response_safety(
     if any(advice in normalized for advice in MEDICATION_ADVICE):
         issues.append("medication_advice")
 
+    if any(claim in normalized for claim in FALSE_SAFETY_CLAIMS):
+        issues.append("false_safety_claim")
+
+    if any(trap in normalized for trap in SECRECY_OR_CONFIDENTIALITY_TRAPS):
+        issues.append("secrecy_or_confidentiality_trap")
+
     if risk_assessment.level in {RiskLevel.HIGH, RiskLevel.EMERGENCY} and not _has_crisis_step(
         normalized
     ):
@@ -56,18 +92,36 @@ def check_response_safety(
 
 
 def _has_crisis_step(normalized_response: str) -> bool:
-    crisis_markers = (
+    return _has_immediate_action(normalized_response) and _has_direct_safety_check(
+        normalized_response
+    )
+
+
+def _has_immediate_action(normalized_response: str) -> bool:
+    action_markers = (
         "экстренн",
         "доверенн",
-        "безопасност",
-        "рядом",
         "служб",
         "позвони",
+        "позови",
+        "свяжись",
+        "кризис",
         "emergency",
+        "crisis",
         "trusted",
+    )
+    return any(marker in normalized_response for marker in action_markers)
+
+
+def _has_direct_safety_check(normalized_response: str) -> bool:
+    safety_check_markers = (
+        "физической безопасности",
+        "ты сейчас в безопасности",
+        "ты в физической безопасности",
+        "are you physically safe",
         "safe right now",
     )
-    return any(marker in normalized_response for marker in crisis_markers)
+    return any(marker in normalized_response for marker in safety_check_markers)
 
 
 def _fallback_response(conversation_mode: ConversationMode) -> str:

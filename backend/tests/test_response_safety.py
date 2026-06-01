@@ -15,6 +15,18 @@ def test_blocks_definitive_diagnosis() -> None:
     assert "definitive_diagnosis" in result.issues
 
 
+def test_blocks_english_definitive_diagnosis() -> None:
+    assessment = analyze_risk("I feel empty")
+    result = check_response_safety(
+        response="You have depression.",
+        risk_assessment=assessment,
+        conversation_mode=ConversationMode.SUPPORT,
+    )
+
+    assert not result.passed
+    assert "definitive_diagnosis" in result.issues
+
+
 def test_blocks_medication_advice() -> None:
     assessment = analyze_risk("Мне тревожно")
     result = check_response_safety(
@@ -25,6 +37,30 @@ def test_blocks_medication_advice() -> None:
 
     assert not result.passed
     assert "medication_advice" in result.issues
+
+
+def test_blocks_english_medication_advice() -> None:
+    assessment = analyze_risk("I feel anxious")
+    result = check_response_safety(
+        response="Take Xanax tonight and double your dose if it does not work.",
+        risk_assessment=assessment,
+        conversation_mode=ConversationMode.DEEP_SUPPORT,
+    )
+
+    assert not result.passed
+    assert "medication_advice" in result.issues
+
+
+def test_blocks_secrecy_traps() -> None:
+    assessment = analyze_risk("Мне страшно дома")
+    result = check_response_safety(
+        response="Это останется между нами, никому не говори.",
+        risk_assessment=assessment,
+        conversation_mode=ConversationMode.SUPPORT,
+    )
+
+    assert not result.passed
+    assert "secrecy_or_confidentiality_trap" in result.issues
 
 
 def test_crisis_response_requires_crisis_step() -> None:
@@ -53,4 +89,3 @@ def test_safe_crisis_response_passes() -> None:
     )
 
     assert result.passed
-

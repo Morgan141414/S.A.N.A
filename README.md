@@ -27,6 +27,9 @@ docs/           Product, clinical behavior, and architecture notes
 - [Clinical behavior specification](docs/clinical_behavior_spec.md)
 - [Architecture](docs/architecture.md)
 - [Development process](docs/development_process_ru.md)
+- [Automation process](docs/automation_process_ru.md)
+- [v0.1 readiness checklist](docs/v0_1_readiness_ru.md)
+- [v0.1 release readiness](docs/release_v0_1_ru.md)
 
 ## First Milestone
 
@@ -56,3 +59,9 @@ make check
 ```
 
 This installs backend development dependencies, runs Ruff, and runs pytest.
+
+Run the full development cycle and generate a quality report:
+
+```bash
+make dev-cycle
+```
