@@ -3,7 +3,9 @@ import json
 import re
 import sys
 
-from pydantic import BaseModel, Field, field_validator
+from enum import StrEnum
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.services.policy_router import ConversationMode, route_policy
 from app.services.response_quality import ResponseQualityCheck, check_response_quality
@@ -13,14 +15,32 @@ from app.services.support_protocols import SupportProtocol, select_support_proto
 from app.services.support_response import build_support_response
 
 
+class ScenarioPriority(StrEnum):
+    P0 = "p0"
+    P1 = "p1"
+    P2 = "p2"
+
+
+class ScenarioSourceType(StrEnum):
+    SYNTHETIC = "synthetic"
+    RED_TEAM = "red_team"
+    CLINICIAN_AUTHORED = "clinician_authored"
+
+
 class EvaluationScenario(BaseModel):
     id: str
+    dataset_version: str = "v0.4.0"
+    priority: ScenarioPriority
+    source_type: ScenarioSourceType
+    case_family: str
     message: str
     age: int | None = Field(default=None, ge=0, le=120)
     locale: str = "ru"
     expected_risk_level: RiskLevel
     expected_conversation_mode: ConversationMode
     expected_support_protocol: SupportProtocol
+    review_required: bool
+    max_response_chars: int = Field(default=900, ge=120, le=2000)
     required_phrases: list[str] = Field(default_factory=list)
     forbidden_phrases: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
@@ -37,6 +57,15 @@ class EvaluationScenario(BaseModel):
         if any(re.search(pattern, value) for pattern in patterns):
             raise ValueError("evaluation scenario message must not contain raw identifiers")
         return value
+
+    @model_validator(mode="after")
+    def require_review_for_safety_critical_cases(self) -> "EvaluationScenario":
+        if (
+            self.expected_risk_level in {RiskLevel.HIGH, RiskLevel.EMERGENCY}
+            or self.expected_conversation_mode == ConversationMode.MINOR_SAFETY
+        ) and not self.review_required:
+            raise ValueError("high, emergency, and minor_safety cases require review_required=true")
+        return self
 
 
 class ScenarioEvaluationResult(BaseModel):
@@ -58,6 +87,9 @@ class EvaluationSummary(BaseModel):
     pass_rate: float
     failures_by_issue: dict[str, int]
     failures_by_tag: dict[str, int]
+    coverage_by_priority: dict[str, int]
+    coverage_by_source_type: dict[str, int]
+    coverage_by_case_family: dict[str, int]
     coverage_by_risk_level: dict[str, int]
     coverage_by_conversation_mode: dict[str, int]
     coverage_by_support_protocol: dict[str, int]
@@ -67,7 +99,9 @@ class EvaluationSummary(BaseModel):
 
 def load_scenarios(path: Path) -> list[EvaluationScenario]:
     raw_data = json.loads(path.read_text(encoding="utf-8"))
-    return [EvaluationScenario.model_validate(item) for item in raw_data]
+    scenarios = [EvaluationScenario.model_validate(item) for item in raw_data]
+    _validate_unique_ids(scenarios)
+    return scenarios
 
 
 def evaluate_scenario(scenario: EvaluationScenario) -> ScenarioEvaluationResult:
@@ -127,6 +161,9 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
     passed = sum(1 for result in results if result.passed)
     failures_by_issue: dict[str, int] = {}
     failures_by_tag: dict[str, int] = {}
+    coverage_by_priority: dict[str, int] = {}
+    coverage_by_source_type: dict[str, int] = {}
+    coverage_by_case_family: dict[str, int] = {}
     coverage_by_risk_level: dict[str, int] = {}
     coverage_by_conversation_mode: dict[str, int] = {}
     coverage_by_support_protocol: dict[str, int] = {}
@@ -134,6 +171,9 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
 
     scenario_by_id = {scenario.id: scenario for scenario in scenarios}
     for scenario in scenarios:
+        _increment(coverage_by_priority, scenario.priority.value)
+        _increment(coverage_by_source_type, scenario.source_type.value)
+        _increment(coverage_by_case_family, scenario.case_family)
         _increment(coverage_by_risk_level, scenario.expected_risk_level.value)
         _increment(coverage_by_conversation_mode, scenario.expected_conversation_mode.value)
         _increment(coverage_by_support_protocol, scenario.expected_support_protocol.value)
@@ -155,6 +195,9 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
         pass_rate=round(passed / len(results), 4) if results else 0.0,
         failures_by_issue=failures_by_issue,
         failures_by_tag=failures_by_tag,
+        coverage_by_priority=coverage_by_priority,
+        coverage_by_source_type=coverage_by_source_type,
+        coverage_by_case_family=coverage_by_case_family,
         coverage_by_risk_level=coverage_by_risk_level,
         coverage_by_conversation_mode=coverage_by_conversation_mode,
         coverage_by_support_protocol=coverage_by_support_protocol,
@@ -177,6 +220,18 @@ def write_markdown_report(summary: EvaluationSummary, output_path: Path) -> None
         f"- Passed: {summary.passed}",
         f"- Failed: {summary.failed}",
         f"- Pass rate: {summary.pass_rate}",
+        "",
+        "## Coverage By Priority",
+        "",
+        *_format_counter(summary.coverage_by_priority),
+        "",
+        "## Coverage By Source Type",
+        "",
+        *_format_counter(summary.coverage_by_source_type),
+        "",
+        "## Coverage By Case Family",
+        "",
+        *_format_counter(summary.coverage_by_case_family),
         "",
         "## Coverage By Risk Level",
         "",
@@ -226,6 +281,9 @@ def _collect_issues(
     if support_protocol != scenario.expected_support_protocol:
         issues.append(f"support_protocol:{support_protocol}!={scenario.expected_support_protocol}")
 
+    if len(response) > scenario.max_response_chars:
+        issues.append(f"response_too_long:{len(response)}>{scenario.max_response_chars}")
+
     if not safety_check.passed:
         issues.extend(f"safety:{issue}" for issue in safety_check.issues)
 
@@ -245,6 +303,18 @@ def _collect_issues(
 
 def _increment(counter: dict[str, int], key: str) -> None:
     counter[key] = counter.get(key, 0) + 1
+
+
+def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for scenario in scenarios:
+        if scenario.id in seen:
+            duplicates.add(scenario.id)
+        seen.add(scenario.id)
+    if duplicates:
+        joined = ", ".join(sorted(duplicates))
+        raise ValueError(f"duplicate evaluation scenario ids: {joined}")
 
 
 def _format_counter(counter: dict[str, int]) -> list[str]:

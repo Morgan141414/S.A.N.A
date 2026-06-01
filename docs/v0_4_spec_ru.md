@@ -6,6 +6,8 @@
 
 Этот документ описывает скоуп версии v0.4: доказуемое качество, покрытие evaluation set, видимость регрессий и отчетность по результатам проверки S.A.N.A.
 
+Текущий implemented slice v0.4 закрывает расширенный P0 evaluation dataset, schema validation, coverage summary, JSON/Markdown reports и release gates через `make dev-cycle`, `make evaluate`, `make evaluate-report`. Baseline diff, trend reporting, reviewer workflow и formal readiness decision остаются следующим расширением v0.4+/v0.5, а не считаются завершенными в текущем коде.
+
 v0.4 не делает S.A.N.A. "умнее" за счет LLM, fine-tuning или обучения модели. Главная идея версии: сделать качество наблюдаемым, воспроизводимым и пригодным для release decision. После v0.4 команда должна видеть, какие сценарии покрыты, какие проверки обязательны, где появились регрессии и почему релиз можно или нельзя считать готовым.
 
 ## 1. Цели v0.4
