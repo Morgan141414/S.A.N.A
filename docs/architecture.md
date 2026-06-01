@@ -7,7 +7,7 @@ S.A.N.A. starts as a modular safety-first assistant. The early prototype can use
 ```text
 User message
   -> Input normalization
-  -> Risk classifier
+  -> Risk classifier with feature scoring
   -> Conversation policy router
   -> Response generator
   -> Safety checker
@@ -17,10 +17,23 @@ User message
 ## Modules
 
 - `risk_classifier`: estimates emotional and safety risk.
-- `policy_router`: selects ordinary support, deeper support, or crisis mode.
-- `response_generator`: creates the assistant response.
+- `policy_router`: selects support, deep support, minor support, crisis, or emergency mode.
+- `response_generator`: creates the assistant response according to the selected mode.
 - `safety_checker`: blocks unsafe claims, diagnoses, medication advice, and weak crisis handling.
 - `resource_recommender`: later provides localized professional and emergency resources.
+
+## Current Prototype Response Contract
+
+The chat endpoint returns:
+
+```text
+risk_level          low | medium | high | emergency
+risk_score          numeric score from 0 to 1
+conversation_mode   selected dialog policy
+risk_assessment     features, matched terms, and rationale
+safety_check        final validation result
+response            safe user-facing answer
+```
 
 ## Training Path
 
@@ -38,4 +51,3 @@ User message
 - PostgreSQL later for accounts and sessions
 - Redis later for queues and short-term state
 - Qdrant later for retrieval over vetted support materials
-
