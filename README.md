@@ -21,6 +21,12 @@ backend/        FastAPI service and safety pipeline
 docs/           Product, clinical behavior, and architecture notes
 ```
 
+## Core Documents
+
+- [Technical specification](docs/technical_spec_ru.md)
+- [Clinical behavior specification](docs/clinical_behavior_spec.md)
+- [Architecture](docs/architecture.md)
+
 ## First Milestone
 
 The first milestone is a safe prototype:
@@ -39,4 +45,3 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
-
