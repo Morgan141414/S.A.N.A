@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.services.llm_contract import build_guarded_response
+from app.services.llm_providers import get_configured_llm_provider
 from app.services.policy_router import ConversationMode, route_policy
 from app.services.response_quality import ResponseQualityCheck
 from app.services.risk_classifier import RiskAssessment, RiskLevel, analyze_risk
@@ -44,6 +45,7 @@ def chat(request: ChatRequest) -> ChatResponse:
         support_protocol=support_protocol,
         age=request.age,
         locale=request.locale,
+        llm_provider=get_configured_llm_provider(),
     )
     return ChatResponse(
         risk_level=risk_assessment.level,

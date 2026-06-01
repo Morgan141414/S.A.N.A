@@ -10,6 +10,13 @@ from app.services.support_protocols import SupportProtocol, select_support_proto
 from app.services.support_response import build_support_response
 
 
+class ExplodingProvider:
+    name = "exploding"
+
+    def generate(self, request):
+        raise TimeoutError("provider timed out")
+
+
 def _pipeline_inputs(message: str, age: int | None = 25):
     assessment = analyze_risk(message)
     mode = route_policy(assessment, age=age)
@@ -107,6 +114,48 @@ def test_low_quality_llm_candidate_falls_back() -> None:
     assert result.fallback_used
     assert result.blocked_reason == "llm_quality_failed"
     assert "missing_empathic_reflection" in result.llm_quality_issues
+    assert result.response == expected
+
+
+def test_provider_error_falls_back_without_raising() -> None:
+    message = "Мне грустно после тяжелого дня"
+    assessment, mode, protocol = _pipeline_inputs(message, age=25)
+    expected = build_support_response(message, assessment, mode, protocol, age=25)
+
+    result = build_guarded_response(
+        message,
+        assessment,
+        mode,
+        protocol,
+        age=25,
+        llm_provider=ExplodingProvider(),
+    )
+
+    assert result.provider_used
+    assert result.provider_name == "exploding"
+    assert result.fallback_used
+    assert result.blocked_reason == "llm_provider_error"
+    assert result.response == expected
+
+
+def test_empty_llm_candidate_falls_back() -> None:
+    message = "Мне грустно после тяжелого дня"
+    assessment, mode, protocol = _pipeline_inputs(message, age=25)
+    expected = build_support_response(message, assessment, mode, protocol, age=25)
+    provider = MockLLMProvider("   ")
+
+    result = build_guarded_response(
+        message,
+        assessment,
+        mode,
+        protocol,
+        age=25,
+        llm_provider=provider,
+    )
+
+    assert result.provider_used
+    assert result.fallback_used
+    assert result.blocked_reason == "llm_empty_response"
     assert result.response == expected
 
 

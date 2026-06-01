@@ -5,6 +5,7 @@ description = "Backend service for S.A.N.A. psychological support assistant."
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.111.0",
+    "openai>=1.99.0",
     "pydantic>=2.7.0",
     "uvicorn[standard]>=0.30.0",
 ]

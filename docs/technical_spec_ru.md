@@ -243,6 +243,7 @@ S.A.N.A. не должна:
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.
 - v0.5: `docs/v0_5_spec_ru.md` - baseline diff, regression visibility, readiness decision и release gates поверх v0.4.
 - v0.6: `docs/v0_6_spec_ru.md` - LLM Contract Layer: LLMProvider interface, mock provider, prompt policy, safety wrapper, fallback и release gates.
+- v0.7: `docs/v0_7_spec_ru.md` - OpenAI provider skeleton: env settings, disabled-by-default, no secrets, fallback on provider errors/timeouts, mock-only tests и crisis/minors disabled.
 
 ## 15. Главный принцип
 

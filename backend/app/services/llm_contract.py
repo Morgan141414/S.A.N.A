@@ -23,6 +23,7 @@ class LLMGenerationRequest(BaseModel):
 class LLMGenerationResult(BaseModel):
     text: str
     provider_name: str
+    model: str | None = None
 
 
 class GuardedGenerationResult(BaseModel):
@@ -120,7 +121,32 @@ def build_guarded_response(
         locale=locale,
         prompt_policy=build_prompt_policy(conversation_mode, support_protocol, locale),
     )
-    llm_result = llm_provider.generate(request)
+    try:
+        llm_result = llm_provider.generate(request)
+    except Exception:
+        return _finalize_response(
+            response=deterministic_response,
+            risk_assessment=risk_assessment,
+            conversation_mode=conversation_mode,
+            support_protocol=support_protocol,
+            provider_used=True,
+            provider_name=getattr(llm_provider, "name", None),
+            fallback_used=True,
+            blocked_reason="llm_provider_error",
+        )
+
+    if not llm_result.text.strip():
+        return _finalize_response(
+            response=deterministic_response,
+            risk_assessment=risk_assessment,
+            conversation_mode=conversation_mode,
+            support_protocol=support_protocol,
+            provider_used=True,
+            provider_name=llm_result.provider_name,
+            fallback_used=True,
+            blocked_reason="llm_empty_response",
+        )
+
     llm_safety_check = check_response_safety(
         response=llm_result.text,
         risk_assessment=risk_assessment,
