@@ -6,6 +6,9 @@ BACKEND_DIR="$ROOT_DIR/backend"
 SCENARIO_PATH="${1:-$BACKEND_DIR/tests/fixtures/v0_3_eval_scenarios.json}"
 REPORT_PATH="${2:-}"
 MARKDOWN_REPORT_PATH="${3:-}"
+BASELINE_PATH="${4:-}"
+REGRESSION_DIFF_PATH="${5:-}"
+READINESS_PATH="${6:-}"
 
 cd "$BACKEND_DIR"
 
@@ -25,7 +28,15 @@ fi
 source .venv/bin/activate
 
 python -m pip install -e ".[dev]" >/tmp/sana-evaluate-install.log
-if [ -n "$REPORT_PATH" ] && [ -n "$MARKDOWN_REPORT_PATH" ]; then
+if [ -n "$BASELINE_PATH" ] && [ -n "$REGRESSION_DIFF_PATH" ] && [ -n "$READINESS_PATH" ]; then
+  python -m app.services.evaluation \
+    "$SCENARIO_PATH" \
+    "$REPORT_PATH" \
+    "$MARKDOWN_REPORT_PATH" \
+    "$BASELINE_PATH" \
+    "$REGRESSION_DIFF_PATH" \
+    "$READINESS_PATH"
+elif [ -n "$REPORT_PATH" ] && [ -n "$MARKDOWN_REPORT_PATH" ]; then
   python -m app.services.evaluation "$SCENARIO_PATH" "$REPORT_PATH" "$MARKDOWN_REPORT_PATH"
 elif [ -n "$REPORT_PATH" ]; then
   python -m app.services.evaluation "$SCENARIO_PATH" "$REPORT_PATH"

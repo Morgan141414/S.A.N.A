@@ -5,13 +5,19 @@ from pydantic import ValidationError
 
 from app.services.evaluation import (
     EvaluationScenario,
+    ReadinessStatus,
     ScenarioPriority,
     ScenarioSourceType,
+    build_regression_diff,
+    decide_readiness,
     evaluate_scenario,
     evaluate_scenarios,
+    load_evaluation_report,
     load_scenarios,
     write_evaluation_report,
     write_markdown_report,
+    write_readiness_decision,
+    write_regression_diff,
 )
 from app.services.policy_router import ConversationMode
 from app.services.risk_classifier import RiskLevel
@@ -101,6 +107,8 @@ def test_evaluation_report_can_be_written(tmp_path: Path) -> None:
 
     assert output_path.exists()
     assert '"pass_rate":1.0' in output_path.read_text(encoding="utf-8").replace(" ", "")
+    loaded = load_evaluation_report(output_path)
+    assert loaded.pass_rate == 1.0
 
 
 def test_markdown_evaluation_report_can_be_written(tmp_path: Path) -> None:
@@ -116,6 +124,106 @@ def test_markdown_evaluation_report_can_be_written(tmp_path: Path) -> None:
     assert "Coverage By Source Type" in text
     assert "Coverage By Case Family" in text
     assert "Coverage By Risk Level" in text
+
+
+def test_identical_baseline_has_no_regressions() -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+
+    diff = build_regression_diff(current=summary, baseline=summary)
+    decision = decide_readiness(summary=summary, regression_diff=diff)
+
+    assert diff.new_failures == []
+    assert diff.fixed_failures == []
+    assert diff.changed_results == []
+    assert diff.added_scenarios == []
+    assert diff.removed_scenarios == []
+    assert not diff.has_blocking_regressions
+    assert decision.status == ReadinessStatus.READY
+    assert decision.blocking_reasons == []
+
+
+def test_new_failure_blocks_readiness() -> None:
+    baseline = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    first_result = baseline.results[0].model_copy(
+        update={"passed": False, "issues": ["missing_required_phrase:regression"]}
+    )
+    current = baseline.model_copy(
+        update={
+            "passed": baseline.passed - 1,
+            "failed": baseline.failed + 1,
+            "pass_rate": round((baseline.passed - 1) / baseline.total, 4),
+            "results": [first_result, *baseline.results[1:]],
+        }
+    )
+
+    diff = build_regression_diff(current=current, baseline=baseline)
+    decision = decide_readiness(summary=current, regression_diff=diff)
+
+    assert [change.id for change in diff.new_failures] == [baseline.results[0].id]
+    assert diff.fixed_failures == []
+    assert diff.has_blocking_regressions
+    assert decision.status == ReadinessStatus.NOT_READY
+    assert "evaluation_failed:1" in decision.blocking_reasons
+    assert "new_failures:1" in decision.blocking_reasons
+
+
+def test_fixed_failure_is_not_a_blocking_regression() -> None:
+    current = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    failed_result = current.results[0].model_copy(
+        update={"passed": False, "issues": ["missing_required_phrase:old_failure"]}
+    )
+    baseline = current.model_copy(
+        update={
+            "passed": current.passed - 1,
+            "failed": current.failed + 1,
+            "pass_rate": round((current.passed - 1) / current.total, 4),
+            "results": [failed_result, *current.results[1:]],
+        }
+    )
+
+    diff = build_regression_diff(current=current, baseline=baseline)
+    decision = decide_readiness(summary=current, regression_diff=diff)
+
+    assert [change.id for change in diff.fixed_failures] == [current.results[0].id]
+    assert diff.new_failures == []
+    assert not diff.has_blocking_regressions
+    assert decision.status == ReadinessStatus.READY
+
+
+def test_removed_scenario_blocks_readiness() -> None:
+    baseline = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    current = baseline.model_copy(
+        update={
+            "total": baseline.total - 1,
+            "passed": baseline.passed - 1,
+            "results": baseline.results[1:],
+        }
+    )
+
+    diff = build_regression_diff(current=current, baseline=baseline)
+    decision = decide_readiness(summary=current, regression_diff=diff)
+
+    assert diff.removed_scenarios == [baseline.results[0].id]
+    assert diff.has_blocking_regressions
+    assert decision.status == ReadinessStatus.NOT_READY
+    assert "removed_scenarios:1" in decision.blocking_reasons
+
+
+def test_regression_and_readiness_reports_can_be_written(tmp_path: Path) -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    diff = build_regression_diff(current=summary, baseline=summary)
+    decision = decide_readiness(summary=summary, regression_diff=diff)
+    diff_path = tmp_path / "regression_diff.json"
+    readiness_path = tmp_path / "readiness.md"
+
+    write_regression_diff(diff, diff_path)
+    write_readiness_decision(decision, readiness_path)
+
+    assert '"new_failures":[]' in diff_path.read_text(encoding="utf-8").replace(" ", "")
+    readiness_text = readiness_path.read_text(encoding="utf-8")
+    assert "S.A.N.A. Readiness Decision" in readiness_text
+    assert "Status: `ready`" in readiness_text
+    assert "No blocking reasons." in readiness_text
 
 
 def test_safety_critical_cases_require_review() -> None:

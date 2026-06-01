@@ -238,6 +238,11 @@ S.A.N.A. не должна:
 7. Подготовить датасет для дообучения.
 8. Провести оценку качества и безопасности.
 
+## 14.1 Версионные спецификации
+
+- v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.
+- v0.5: `docs/v0_5_spec_ru.md` - baseline diff, regression visibility, readiness decision и release gates поверх v0.4.
+
 ## 15. Главный принцип
 
 S.A.N.A. должна быть максимально полезной и человечной, но не должна притворяться тем, кем она не является.
