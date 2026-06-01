@@ -58,6 +58,10 @@ class EvaluationSummary(BaseModel):
     pass_rate: float
     failures_by_issue: dict[str, int]
     failures_by_tag: dict[str, int]
+    coverage_by_risk_level: dict[str, int]
+    coverage_by_conversation_mode: dict[str, int]
+    coverage_by_support_protocol: dict[str, int]
+    coverage_by_tag: dict[str, int]
     results: list[ScenarioEvaluationResult]
 
 
@@ -123,15 +127,26 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
     passed = sum(1 for result in results if result.passed)
     failures_by_issue: dict[str, int] = {}
     failures_by_tag: dict[str, int] = {}
+    coverage_by_risk_level: dict[str, int] = {}
+    coverage_by_conversation_mode: dict[str, int] = {}
+    coverage_by_support_protocol: dict[str, int] = {}
+    coverage_by_tag: dict[str, int] = {}
 
     scenario_by_id = {scenario.id: scenario for scenario in scenarios}
+    for scenario in scenarios:
+        _increment(coverage_by_risk_level, scenario.expected_risk_level.value)
+        _increment(coverage_by_conversation_mode, scenario.expected_conversation_mode.value)
+        _increment(coverage_by_support_protocol, scenario.expected_support_protocol.value)
+        for tag in scenario.tags:
+            _increment(coverage_by_tag, tag)
+
     for result in results:
         if result.passed:
             continue
         for issue in result.issues:
-            failures_by_issue[issue] = failures_by_issue.get(issue, 0) + 1
+            _increment(failures_by_issue, issue)
         for tag in scenario_by_id[result.id].tags:
-            failures_by_tag[tag] = failures_by_tag.get(tag, 0) + 1
+            _increment(failures_by_tag, tag)
 
     return EvaluationSummary(
         total=len(results),
@@ -140,8 +155,52 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
         pass_rate=round(passed / len(results), 4) if results else 0.0,
         failures_by_issue=failures_by_issue,
         failures_by_tag=failures_by_tag,
+        coverage_by_risk_level=coverage_by_risk_level,
+        coverage_by_conversation_mode=coverage_by_conversation_mode,
+        coverage_by_support_protocol=coverage_by_support_protocol,
+        coverage_by_tag=coverage_by_tag,
         results=results,
     )
+
+
+def write_evaluation_report(summary: EvaluationSummary, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(summary.model_dump_json(indent=2), encoding="utf-8")
+
+
+def write_markdown_report(summary: EvaluationSummary, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# S.A.N.A. Evaluation Report",
+        "",
+        f"- Total: {summary.total}",
+        f"- Passed: {summary.passed}",
+        f"- Failed: {summary.failed}",
+        f"- Pass rate: {summary.pass_rate}",
+        "",
+        "## Coverage By Risk Level",
+        "",
+        *_format_counter(summary.coverage_by_risk_level),
+        "",
+        "## Coverage By Conversation Mode",
+        "",
+        *_format_counter(summary.coverage_by_conversation_mode),
+        "",
+        "## Coverage By Support Protocol",
+        "",
+        *_format_counter(summary.coverage_by_support_protocol),
+        "",
+        "## Failures",
+        "",
+    ]
+    if summary.failed == 0:
+        lines.append("No failures.")
+    else:
+        for result in summary.results:
+            if not result.passed:
+                lines.append(f"- `{result.id}`: {', '.join(result.issues)}")
+
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _collect_issues(
@@ -184,6 +243,16 @@ def _collect_issues(
     return issues
 
 
+def _increment(counter: dict[str, int], key: str) -> None:
+    counter[key] = counter.get(key, 0) + 1
+
+
+def _format_counter(counter: dict[str, int]) -> list[str]:
+    if not counter:
+        return ["No data."]
+    return [f"- `{key}`: {value}" for key, value in sorted(counter.items())]
+
+
 def main() -> int:
     default_path = (
         Path(__file__).resolve().parents[2]
@@ -192,7 +261,13 @@ def main() -> int:
         / "v0_3_eval_scenarios.json"
     )
     scenario_path = Path(sys.argv[1]) if len(sys.argv) > 1 else default_path
+    output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+    markdown_output_path = Path(sys.argv[3]) if len(sys.argv) > 3 else None
     summary = evaluate_scenarios(load_scenarios(scenario_path))
+    if output_path is not None:
+        write_evaluation_report(summary, output_path)
+    if markdown_output_path is not None:
+        write_markdown_report(summary, markdown_output_path)
     print(summary.model_dump_json(indent=2))
     return 0 if summary.failed == 0 else 1
 

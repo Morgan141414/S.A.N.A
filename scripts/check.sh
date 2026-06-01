@@ -6,6 +6,11 @@ BACKEND_DIR="$ROOT_DIR/backend"
 
 cd "$BACKEND_DIR"
 
+if [ -d ".venv" ] && [ ! -f ".venv/bin/activate" ]; then
+  echo "backend/.venv exists but is incomplete; recreating it." >&2
+  rm -rf .venv
+fi
+
 if [ ! -d ".venv" ]; then
   if ! python3 -m venv .venv; then
     echo "Could not create backend/.venv. Install python3-venv or create the venv manually." >&2

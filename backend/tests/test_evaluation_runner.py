@@ -3,7 +3,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.services.evaluation import EvaluationScenario, evaluate_scenario, evaluate_scenarios, load_scenarios
+from app.services.evaluation import (
+    EvaluationScenario,
+    evaluate_scenario,
+    evaluate_scenarios,
+    load_scenarios,
+    write_evaluation_report,
+    write_markdown_report,
+)
 from app.services.policy_router import ConversationMode
 from app.services.risk_classifier import RiskLevel
 from app.services.support_protocols import SupportProtocol
@@ -29,6 +36,12 @@ def test_v0_3_eval_scenarios_pass() -> None:
     assert summary.passed == summary.total
     assert summary.pass_rate == 1.0
     assert summary.failures_by_issue == {}
+    assert summary.coverage_by_risk_level["low"] >= 1
+    assert summary.coverage_by_risk_level["medium"] >= 1
+    assert summary.coverage_by_risk_level["high"] >= 1
+    assert summary.coverage_by_risk_level["emergency"] >= 1
+    assert summary.coverage_by_conversation_mode["minor_safety"] >= 1
+    assert summary.coverage_by_support_protocol["depressive_support"] >= 1
 
 
 def test_evaluation_runner_reports_mismatch() -> None:
@@ -64,6 +77,28 @@ def test_evaluation_runner_reports_phrase_requirements() -> None:
 
     assert not result.passed
     assert "missing_required_phrase:THIS PHRASE IS NOT PRESENT" in result.issues
+
+
+def test_evaluation_report_can_be_written(tmp_path: Path) -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    output_path = tmp_path / "evaluation_report.json"
+
+    write_evaluation_report(summary, output_path)
+
+    assert output_path.exists()
+    assert '"pass_rate":1.0' in output_path.read_text(encoding="utf-8").replace(" ", "")
+
+
+def test_markdown_evaluation_report_can_be_written(tmp_path: Path) -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    output_path = tmp_path / "evaluation_report.md"
+
+    write_markdown_report(summary, output_path)
+
+    text = output_path.read_text(encoding="utf-8")
+    assert "# S.A.N.A. Evaluation Report" in text
+    assert "No failures." in text
+    assert "Coverage By Risk Level" in text
 
 
 @pytest.mark.parametrize(

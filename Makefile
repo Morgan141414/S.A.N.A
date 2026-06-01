@@ -1,4 +1,4 @@
-.PHONY: check dev-cycle evaluate quality-report test lint
+.PHONY: check dev-cycle evaluate evaluate-report quality-report test lint
 
 check:
 	./scripts/check.sh
@@ -11,6 +11,9 @@ quality-report:
 
 evaluate:
 	./scripts/evaluate.sh
+
+evaluate-report:
+	./scripts/evaluate_report.sh
 
 test:
 	cd backend && python -m pytest

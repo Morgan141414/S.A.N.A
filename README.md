@@ -36,6 +36,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [Data strategy](docs/data_strategy_ru.md)
 - [Evaluation plan](docs/evaluation_plan_ru.md)
 - [v0.3 release readiness](docs/release_v0_3_ru.md)
+- [v0.4 specification](docs/v0_4_spec_ru.md)
+- [v0.4 release readiness](docs/release_v0_4_ru.md)
 
 ## First Milestone
 
@@ -76,4 +78,10 @@ Run the v0.3 evaluation gate:
 
 ```bash
 make evaluate
+```
+
+Generate an evaluation report:
+
+```bash
+make evaluate-report
 ```
