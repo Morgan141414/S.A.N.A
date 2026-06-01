@@ -30,6 +30,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [Automation process](docs/automation_process_ru.md)
 - [v0.1 readiness checklist](docs/v0_1_readiness_ru.md)
 - [v0.1 release readiness](docs/release_v0_1_ru.md)
+- [v0.2 specification](docs/v0_2_spec_ru.md)
+- [v0.2 release readiness](docs/release_v0_2_ru.md)
 
 ## First Milestone
 

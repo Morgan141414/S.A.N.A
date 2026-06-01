@@ -9,6 +9,7 @@ User message
   -> Input normalization
   -> Risk classifier with feature scoring
   -> Conversation policy router
+  -> Support protocol selector
   -> Response generator
   -> Safety checker
   -> Final answer
@@ -18,8 +19,10 @@ User message
 
 - `risk_classifier`: estimates emotional and safety risk.
 - `policy_router`: selects support, deep support, minor support, crisis, or emergency mode.
+- `support_protocols`: selects the response protocol used by v0.2.
 - `support_response`: creates the assistant response according to the selected mode.
 - `safety_checker`: blocks unsafe claims, diagnoses, medication advice, and weak crisis handling.
+- `response_quality`: validates empathy, next step, protocol-specific requirements, and crisis length.
 - `resource_recommender`: later provides localized professional and emergency resources.
 
 ## Conversation Modes
@@ -33,6 +36,21 @@ crisis         high-risk support with an explicit safety step
 emergency      immediate danger protocol
 ```
 
+## Support Protocols
+
+```text
+general_support      ordinary support when no specialized protocol is selected
+depressive_support   possible depressive signs, low energy, hopelessness
+anxiety_grounding    anxiety, worry, sleep disruption, anxious predictions
+panic_grounding      panic-like body activation and grounding
+grief_loneliness     grief, separation, loneliness, loss
+conflict_stress      conflict, work stress, burnout-like pressure
+minor_support        age-aware support for minors
+minor_safety         abuse, exploitation, or unsafe home signs for minors
+crisis               high-risk crisis support
+emergency            immediate danger protocol
+```
+
 ## Current Prototype Response Contract
 
 The chat endpoint returns:
@@ -41,8 +59,10 @@ The chat endpoint returns:
 risk_level          low | medium | high | emergency
 risk_score          numeric score from 0 to 1
 conversation_mode   selected dialog policy
+support_protocol    selected v0.2 support protocol
 risk_assessment     features, matched terms, and rationale
 safety_check        final validation result
+quality_check       v0.2 response quality result
 response            safe user-facing answer
 ```
 

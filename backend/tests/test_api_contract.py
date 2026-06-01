@@ -18,18 +18,21 @@ def test_chat_response_contract() -> None:
         "risk_level",
         "risk_score",
         "conversation_mode",
+        "support_protocol",
         "risk_assessment",
         "safety_check",
+        "quality_check",
         "response",
     }
     assert payload["risk_level"] == "medium"
     assert payload["conversation_mode"] == "deep_support"
+    assert payload["support_protocol"] == "depressive_support"
     assert payload["response"] == payload["safety_check"]["safe_response"]
     assert payload["safety_check"]["passed"] is True
+    assert payload["quality_check"]["passed"] is True
 
 
 def test_chat_rejects_invalid_input() -> None:
     assert client.post("/api/chat", json={"message": ""}).status_code == 422
     assert client.post("/api/chat", json={"message": "ok", "age": -1}).status_code == 422
     assert client.post("/api/chat", json={"message": "ok", "age": 121}).status_code == 422
-

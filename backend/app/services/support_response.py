@@ -1,14 +1,18 @@
 from app.services.policy_router import ConversationMode
 from app.services.risk_classifier import RiskAssessment
+from app.services.support_protocols import SupportProtocol
 
 
 def build_support_response(
     message: str,
     risk_assessment: RiskAssessment,
     conversation_mode: ConversationMode,
+    support_protocol: SupportProtocol | None = None,
     age: int | None = None,
     locale: str = "ru",
 ) -> str:
+    support_protocol = support_protocol or SupportProtocol.GENERAL_SUPPORT
+
     if locale != "ru":
         return _build_english_response(conversation_mode)
 
@@ -31,14 +35,11 @@ def build_support_response(
             "средство, чтобы навредить себе сегодня?"
         )
 
-    if conversation_mode == ConversationMode.DEEP_SUPPORT:
-        hypothesis = _diagnostic_hypothesis(risk_assessment)
-        return (
-            "Похоже, ты проходишь через состояние, которое может сильно выматывать. "
-            f"{hypothesis} Я не могу ставить диагноз, но могу помочь разобраться и "
-            "выбрать следующий безопасный шаг. Что сейчас сильнее всего давит: мысли, "
-            "эмоции, тело или какая-то конкретная ситуация?"
-        )
+    if conversation_mode == ConversationMode.DEEP_SUPPORT or support_protocol in {
+        SupportProtocol.GRIEF_LONELINESS,
+        SupportProtocol.CONFLICT_STRESS,
+    }:
+        return _build_deep_support_response(risk_assessment, support_protocol)
 
     if conversation_mode == ConversationMode.MINOR_SAFETY:
         return (
@@ -58,8 +59,65 @@ def build_support_response(
 
     return (
         "Я рядом. Похоже, сейчас тебе непросто, и это заслуживает внимания, а не "
-        "обесценивания. Расскажи немного подробнее: что случилось и что ты чувствуешь "
-        "сильнее всего прямо сейчас?"
+        "обесценивания. Попробуй на минуту замедлиться и назвать, что ты чувствуешь "
+        "сильнее всего. Что случилось сегодня?"
+    )
+
+
+def _build_deep_support_response(
+    risk_assessment: RiskAssessment,
+    support_protocol: SupportProtocol,
+) -> str:
+    if support_protocol == SupportProtocol.PANIC_GROUNDING:
+        return (
+            "Похоже, сейчас тело может быть в режиме сильной тревоги или паники. "
+            "Я не могу ставить диагноз, но могу помочь тебе стабилизироваться. "
+            "Попробуй на 30 секунд сделать выдох чуть длиннее вдоха и назови пять "
+            "предметов, которые видишь вокруг. Есть ли сейчас боль в груди, обморок, "
+            "сильная одышка или риск навредить себе?"
+        )
+
+    if support_protocol == SupportProtocol.ANXIETY_GROUNDING:
+        return (
+            "Похоже, тревога сейчас забирает много сил. Я не могу ставить диагноз, "
+            "но могу помочь отделить факты от тревожных прогнозов. Назови одну мысль, "
+            "которая пугает сильнее всего, и один маленький шаг, который можно сделать "
+            "в ближайшие 10 минут. Что из этого сейчас проще назвать?"
+        )
+
+    if support_protocol == SupportProtocol.DEPRESSIVE_SUPPORT:
+        return (
+            "В описании есть возможные признаки депрессивного состояния: истощение, "
+            "потеря сил или ощущение безнадежности. Я не могу ставить диагноз, но это "
+            "важно воспринимать серьезно. Появлялись ли мысли навредить себе или не жить? "
+            "Давай выберем один очень маленький шаг на "
+            "сегодня: вода, еда, душ, короткая прогулка или сообщение человеку, которому "
+            "можно доверять. Что из этого сейчас наименее тяжело?"
+        )
+
+    if support_protocol == SupportProtocol.GRIEF_LONELINESS:
+        return (
+            "Похоже, тебе сейчас очень одиноко или больно из-за потери. Такая боль не "
+            "становится меньше от советов вроде 'просто отпусти'. Я рядом и помогу "
+            "выдержать ближайший кусочек времени. Что сегодня сильнее всего ранит: "
+            "пустота, воспоминания, чувство вины или страх остаться одному?"
+        )
+
+    if support_protocol == SupportProtocol.CONFLICT_STRESS:
+        return (
+            "Похоже, ситуация сильно давит и может выматывать. Давай сначала разделим "
+            "ее на части: что произошло, что ты почувствовал, и какой следующий шаг "
+            "будет безопасным, а не импульсивным. Если выбрать только одну цель на "
+            "ближайший час, что важнее: успокоиться, прояснить разговор или отойти "
+            "от конфликта?"
+        )
+
+    hypothesis = _diagnostic_hypothesis(risk_assessment)
+    return (
+        "Похоже, ты проходишь через состояние, которое может сильно выматывать. "
+        f"{hypothesis} Я не могу ставить диагноз, но могу помочь разобраться и "
+        "выбрать следующий безопасный шаг. Что сейчас сильнее всего давит: мысли, "
+        "эмоции, тело или какая-то конкретная ситуация?"
     )
 
 
