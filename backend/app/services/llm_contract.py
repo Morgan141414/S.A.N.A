@@ -30,6 +30,7 @@ class GuardedGenerationResult(BaseModel):
     response: str
     provider_used: bool
     provider_name: str | None = None
+    candidate_response: str | None = None
     fallback_used: bool
     blocked_reason: str | None = None
     llm_safety_issues: list[str] = Field(default_factory=list)
@@ -143,6 +144,7 @@ def build_guarded_response(
             support_protocol=support_protocol,
             provider_used=True,
             provider_name=llm_result.provider_name,
+            candidate_response=llm_result.text,
             fallback_used=True,
             blocked_reason="llm_empty_response",
         )
@@ -160,6 +162,7 @@ def build_guarded_response(
             support_protocol=support_protocol,
             provider_used=True,
             provider_name=llm_result.provider_name,
+            candidate_response=llm_result.text,
             fallback_used=True,
             blocked_reason="llm_safety_failed",
             llm_safety_issues=llm_safety_check.issues,
@@ -179,6 +182,7 @@ def build_guarded_response(
             support_protocol=support_protocol,
             provider_used=True,
             provider_name=llm_result.provider_name,
+            candidate_response=llm_result.text,
             fallback_used=True,
             blocked_reason="llm_quality_failed",
             llm_quality_issues=llm_quality_check.issues,
@@ -188,6 +192,7 @@ def build_guarded_response(
         response=llm_safety_check.safe_response,
         provider_used=True,
         provider_name=llm_result.provider_name,
+        candidate_response=llm_result.text,
         fallback_used=False,
         blocked_reason=None,
         llm_safety_issues=[],
@@ -206,6 +211,7 @@ def _finalize_response(
     provider_name: str | None,
     fallback_used: bool,
     blocked_reason: str | None,
+    candidate_response: str | None = None,
     llm_safety_issues: list[str] | None = None,
     llm_quality_issues: list[str] | None = None,
 ) -> GuardedGenerationResult:
@@ -224,6 +230,7 @@ def _finalize_response(
         response=safety_check.safe_response,
         provider_used=provider_used,
         provider_name=provider_name,
+        candidate_response=candidate_response,
         fallback_used=fallback_used,
         blocked_reason=blocked_reason,
         llm_safety_issues=llm_safety_issues or [],

@@ -1,4 +1,4 @@
-.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness quality-report test lint
+.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke quality-report test lint
 
 check:
 	./scripts/check.sh
@@ -17,6 +17,9 @@ evaluate-report:
 
 evaluate-readiness:
 	./scripts/evaluate_readiness.sh
+
+llm-smoke:
+	./scripts/llm_smoke.sh
 
 test:
 	cd backend && python -m pytest
