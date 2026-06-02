@@ -26,6 +26,41 @@
 
 Текущий этап создает только безопасный manifest будущего обучения. Manifest нужен, чтобы deep learning не начался случайно, без gates, review и baseline comparison.
 
+## Dry-run
+
+Dry-run показывает будущий запуск обучения без изменения весов модели.
+
+Команда:
+
+```bash
+make training-dry-run
+```
+
+Входы:
+
+```text
+training manifest
+approved instruction training examples
+```
+
+Выходы:
+
+```text
+training_runs/dry_run_report.json
+training_runs/dry_run_report.md
+```
+
+Dry-run проверяет:
+
+- manifest status;
+- dataset size;
+- low/medium only;
+- отсутствие crisis/emergency/minor_safety;
+- train/validation split;
+- estimated optimizer steps.
+
+Если manifest имеет `status=blocked_until_readiness`, dry-run должен быть `blocked=true`.
+
 ## Минимальная training manifest schema
 
 ```text

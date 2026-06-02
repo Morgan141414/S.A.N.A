@@ -1,4 +1,4 @@
-.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke llm-smoke-ollama-local llm-smoke-ollama-expanded ollama-pull-model ollama-serve-user ollama-user-install quality-report test lint
+.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke llm-smoke-ollama-local llm-smoke-ollama-expanded ollama-pull-model ollama-serve-user ollama-user-install quality-report training-dry-run test lint
 
 check:
 	./scripts/check.sh
@@ -17,6 +17,9 @@ evaluate-report:
 
 evaluate-readiness:
 	./scripts/evaluate_readiness.sh
+
+training-dry-run:
+	./scripts/training_dry_run.sh "$(MANIFEST)" "$(DATASET)" "$(REPORT)" "$(MARKDOWN_REPORT)"
 
 llm-smoke:
 	./scripts/llm_smoke.sh

@@ -47,6 +47,11 @@ v2.0 не означает real-user testing и не означает клини
   - hyperparameters;
   - required gates;
   - status `blocked_until_readiness`.
+- Training dry-run:
+  - validates manifest and dataset;
+  - computes train/validation split;
+  - estimates optimizer steps;
+  - does not modify model weights.
 
 ## Почему это важно
 
@@ -68,7 +73,8 @@ v2.0 не означает real-user testing и не означает клини
 7. Есть повторяемые evaluation reports
 8. Есть approved low/medium instruction example schema
 9. Есть draft training manifest
-10. Есть rollback plan после fine-tuning
+10. Есть dry-run training report без изменения весов модели
+11. Есть rollback plan после fine-tuning
 ```
 
 ## Ожидаемый момент fine-tuning
@@ -88,4 +94,4 @@ v2.0 не означает real-user testing и не означает клини
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
 - расширить approved low/medium examples через clinician-authored сценарии;
-- подготовить dry-run training script без изменения весов модели;
+- расширить dry-run до hardware/memory estimate;

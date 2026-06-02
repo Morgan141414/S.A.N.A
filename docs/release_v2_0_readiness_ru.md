@@ -16,6 +16,7 @@
 - Добавлен reviewer decision ingestion с защитой от ошибочного approval safety-critical/failed cases.
 - Добавлена schema approved low/medium instruction training examples.
 - Добавлен draft training manifest для будущего LoRA/QLoRA без запуска обучения.
+- Добавлен `make training-dry-run` без изменения весов модели.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -27,4 +28,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset, approved low/medium examples и подготовить dry-run training script.
+Расширить synthetic/red-team dataset, approved low/medium examples и добавить hardware/memory estimate для dry-run.
