@@ -256,6 +256,8 @@ v1.1 добавляет preflight-проверку локального Ollama-c
 
 v1.2 добавляет таксономию ошибок локального provider: timeout, HTTP error, connection error, invalid JSON и malformed Ollama payload должны вести к безопасному fallback с понятным `blocked_reason`.
 
+v1.3 добавляет сводку в LLM smoke report: количество принятых LLM candidates, количество fallback и агрегированные `blocked_reasons`.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.

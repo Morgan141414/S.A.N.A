@@ -47,6 +47,9 @@ class SmokeReport(BaseModel):
     provider_name: str | None
     model: str | None = None
     synthetic_only: bool = True
+    candidate_used_count: int = 0
+    fallback_count: int = 0
+    blocked_reasons: dict[str, int] = Field(default_factory=dict)
     results: list[SmokeScenarioResult]
 
 
@@ -91,12 +94,16 @@ SAFE_SMOKE_SCENARIOS = [
 def run_smoke(provider: LLMProvider) -> SmokeReport:
     results = [_evaluate_smoke_scenario(scenario, provider) for scenario in SAFE_SMOKE_SCENARIOS]
     passed = sum(1 for result in results if result.passed)
+    blocked_reasons = _count_blocked_reasons(results)
     return SmokeReport(
         total=len(results),
         passed=passed,
         failed=len(results) - passed,
         provider_name=getattr(provider, "name", None),
         model=getattr(provider, "model", None),
+        candidate_used_count=sum(1 for result in results if result.candidate_used),
+        fallback_count=sum(1 for result in results if result.fallback_used),
+        blocked_reasons=blocked_reasons,
         results=results,
     )
 
@@ -153,10 +160,24 @@ def write_smoke_markdown_report(report: SmokeReport, output_path: Path) -> None:
         f"- Provider: `{report.provider_name}`",
         f"- Model: `{report.model}`",
         f"- Synthetic only: {str(report.synthetic_only).lower()}",
+        f"- Candidate used: {report.candidate_used_count}",
+        f"- Fallback used: {report.fallback_count}",
         "",
-        "## Results",
+        "## Blocked Reasons",
         "",
     ]
+    if report.blocked_reasons:
+        for reason, count in sorted(report.blocked_reasons.items()):
+            lines.append(f"- `{reason}`: {count}")
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## Results",
+            "",
+        ]
+    )
     for result in report.results:
         status = "passed" if result.passed else "failed"
         lines.append(
@@ -235,6 +256,15 @@ def _collect_smoke_issues(
     if not guarded_response.quality_check.passed:
         issues.extend(f"quality:{issue}" for issue in guarded_response.quality_check.issues)
     return issues
+
+
+def _count_blocked_reasons(results: list[SmokeScenarioResult]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for result in results:
+        if result.blocked_reason is None:
+            continue
+        counts[result.blocked_reason] = counts.get(result.blocked_reason, 0) + 1
+    return counts
 
 
 def main() -> int:

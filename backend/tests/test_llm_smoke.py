@@ -136,6 +136,9 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     assert report.total == len(SAFE_SMOKE_SCENARIOS)
     assert report.failed == 0
     assert report.provider_name == "mock"
+    assert report.candidate_used_count == 2
+    assert report.fallback_count == 1
+    assert report.blocked_reasons == {"llm_quality_failed": 1}
     assert all(result.provider_used for result in report.results)
     assert all(result.final_response for result in report.results)
 
@@ -148,3 +151,29 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "S.A.N.A. LLM Smoke Report" in markdown
     assert "Provider: `mock`" in markdown
+    assert "Candidate used: 2" in markdown
+    assert "Fallback used: 1" in markdown
+    assert "- `llm_quality_failed`: 1" in markdown
+
+
+def test_run_smoke_counts_blocked_reasons_for_fallbacks() -> None:
+    provider = MockLLMProvider("У тебя депрессия. Все точно будет хорошо.")
+
+    report = run_smoke(provider)
+
+    assert report.candidate_used_count == 0
+    assert report.fallback_count == len(SAFE_SMOKE_SCENARIOS)
+    assert report.blocked_reasons == {"llm_safety_failed": len(SAFE_SMOKE_SCENARIOS)}
+    assert all(result.blocked_reason == "llm_safety_failed" for result in report.results)
+
+
+def test_smoke_markdown_report_includes_blocked_reason_breakdown(tmp_path: Path) -> None:
+    provider = MockLLMProvider("У тебя депрессия. Все точно будет хорошо.")
+    report = run_smoke(provider)
+    markdown_path = tmp_path / "llm_smoke.md"
+
+    write_smoke_markdown_report(report, markdown_path)
+
+    markdown = markdown_path.read_text(encoding="utf-8")
+    assert "## Blocked Reasons" in markdown
+    assert "- `llm_safety_failed`: 3" in markdown

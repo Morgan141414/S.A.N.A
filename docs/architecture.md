@@ -121,6 +121,16 @@ llm_provider_error
 
 These reasons are diagnostic metadata, not user-facing raw errors.
 
+LLM smoke reports aggregate the guarded response outcomes:
+
+```text
+candidate_used_count
+fallback_count
+blocked_reasons
+```
+
+This lets reviewers compare local models by safety and usefulness before any real-user testing.
+
 ## Prototype Stack
 
 - Python
