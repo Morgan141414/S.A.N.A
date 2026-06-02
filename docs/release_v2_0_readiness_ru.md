@@ -15,6 +15,7 @@
 - Добавлены persisted expert review artifacts для `make evaluate-report` и `make evaluate-readiness`.
 - Добавлен reviewer decision ingestion с защитой от ошибочного approval safety-critical/failed cases.
 - Добавлена schema approved low/medium instruction training examples.
+- Добавлен draft training manifest для будущего LoRA/QLoRA без запуска обучения.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -26,4 +27,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset и approved low/medium examples через clinician-authored сценарии.
+Расширить synthetic/red-team dataset, approved low/medium examples и подготовить dry-run training script.

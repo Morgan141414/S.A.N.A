@@ -41,6 +41,12 @@ v2.0 не означает real-user testing и не означает клини
   - risk/mode/protocol labels;
   - reviewer_decision;
   - no crisis/emergency/minor/failed cases.
+- Draft training manifest:
+  - base_model;
+  - LoRA/QLoRA method;
+  - hyperparameters;
+  - required gates;
+  - status `blocked_until_readiness`.
 
 ## Почему это важно
 
@@ -61,7 +67,8 @@ v2.0 не означает real-user testing и не означает клини
 6. Есть baseline local model comparison минимум по 2-3 моделям
 7. Есть повторяемые evaluation reports
 8. Есть approved low/medium instruction example schema
-9. Есть rollback plan после fine-tuning
+9. Есть draft training manifest
+10. Есть rollback plan после fine-tuning
 ```
 
 ## Ожидаемый момент fine-tuning
@@ -81,3 +88,4 @@ v2.0 не означает real-user testing и не означает клини
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
 - расширить approved low/medium examples через clinician-authored сценарии;
+- подготовить dry-run training script без изменения весов модели;

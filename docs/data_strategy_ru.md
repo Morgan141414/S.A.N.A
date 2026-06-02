@@ -169,3 +169,21 @@ Fine-tuning или deep learning нельзя начинать только по
 - повторяемый evaluation report до и после обучения.
 
 До выполнения этих условий обучение считается преждевременным.
+
+## Training manifest
+
+Перед любым LoRA/QLoRA запуском должен быть создан training manifest.
+
+Manifest фиксирует:
+
+```text
+base_model
+method
+dataset_path
+hyperparameters
+required_gates
+metrics_to_compare
+rollback expectations
+```
+
+Подробный план: `docs/deep_learning_plan_ru.md`.
