@@ -14,6 +14,7 @@
 - Добавлен кодовый контракт clinician/expert review queue.
 - Добавлены persisted expert review artifacts для `make evaluate-report` и `make evaluate-readiness`.
 - Добавлен reviewer decision ingestion с защитой от ошибочного approval safety-critical/failed cases.
+- Добавлена schema approved low/medium instruction training examples.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -25,4 +26,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset и подготовить dataset schema для approved low/medium instruction examples.
+Расширить synthetic/red-team dataset и approved low/medium examples через clinician-authored сценарии.

@@ -11,6 +11,7 @@ READINESS_PATH="${6:-$ROOT_DIR/evaluation_reports/v0_5_readiness.md}"
 REVIEW_QUEUE_PATH="${7:-$ROOT_DIR/evaluation_reports/v0_5_expert_review_queue.json}"
 REVIEW_MARKDOWN_PATH="${8:-$ROOT_DIR/evaluation_reports/v0_5_expert_review_queue.md}"
 REVIEW_DECISIONS_PATH="${9:-}"
+TRAINING_EXAMPLES_PATH="${10:-}"
 
 if [ -n "$BASELINE_PATH" ]; then
   "$ROOT_DIR/scripts/evaluate.sh" \
@@ -22,7 +23,8 @@ if [ -n "$BASELINE_PATH" ]; then
     "$READINESS_PATH" \
     "$REVIEW_QUEUE_PATH" \
     "$REVIEW_MARKDOWN_PATH" \
-    "$REVIEW_DECISIONS_PATH" >/tmp/sana-evaluate-report.log
+    "$REVIEW_DECISIONS_PATH" \
+    "$TRAINING_EXAMPLES_PATH" >/tmp/sana-evaluate-report.log
   echo "Regression diff: $REGRESSION_DIFF_PATH"
   echo "Readiness decision: $READINESS_PATH"
 else
@@ -35,7 +37,8 @@ else
     "" \
     "$REVIEW_QUEUE_PATH" \
     "$REVIEW_MARKDOWN_PATH" \
-    "$REVIEW_DECISIONS_PATH" >/tmp/sana-evaluate-report.log
+    "$REVIEW_DECISIONS_PATH" \
+    "$TRAINING_EXAMPLES_PATH" >/tmp/sana-evaluate-report.log
 fi
 echo "Evaluation report: $REPORT_PATH"
 echo "Markdown report: $MARKDOWN_REPORT_PATH"
@@ -43,4 +46,7 @@ echo "Expert review queue: $REVIEW_QUEUE_PATH"
 echo "Expert review markdown: $REVIEW_MARKDOWN_PATH"
 if [ -n "$REVIEW_DECISIONS_PATH" ]; then
   echo "Expert review decisions: $REVIEW_DECISIONS_PATH"
+fi
+if [ -n "$TRAINING_EXAMPLES_PATH" ]; then
+  echo "Instruction training examples: $TRAINING_EXAMPLES_PATH"
 fi

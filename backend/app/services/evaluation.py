@@ -178,6 +178,20 @@ class ExpertReviewDecisionInput(BaseModel):
     reviewer_notes: str = ""
 
 
+class InstructionTrainingExample(BaseModel):
+    id: str
+    dataset_version: str
+    source_type: ScenarioSourceType
+    locale: str
+    user_message: str
+    assistant_response: str
+    risk_level: RiskLevel
+    conversation_mode: ConversationMode
+    support_protocol: SupportProtocol
+    reviewer_decision: ReviewDecision
+    tags: list[str] = Field(default_factory=list)
+
+
 def load_scenarios(path: Path) -> list[EvaluationScenario]:
     raw_data = json.loads(path.read_text(encoding="utf-8"))
     scenarios = [EvaluationScenario.model_validate(item) for item in raw_data]
@@ -448,6 +462,43 @@ def apply_expert_review_decisions(
     return reviewed_items
 
 
+def build_instruction_training_examples(
+    *,
+    scenarios: list[EvaluationScenario],
+    summary: EvaluationSummary,
+    review_queue: list[ExpertReviewQueueItem],
+) -> list[InstructionTrainingExample]:
+    result_by_id = {result.id: result for result in summary.results}
+    review_by_id = {item.scenario_id: item for item in review_queue}
+    examples: list[InstructionTrainingExample] = []
+
+    for scenario in scenarios:
+        result = result_by_id.get(scenario.id)
+        review_item = review_by_id.get(scenario.id)
+        if result is None or review_item is None:
+            continue
+        if not _is_training_example_allowed(result=result, review_item=review_item):
+            continue
+
+        examples.append(
+            InstructionTrainingExample(
+                id=scenario.id,
+                dataset_version=scenario.dataset_version,
+                source_type=scenario.source_type,
+                locale=scenario.locale,
+                user_message=scenario.message,
+                assistant_response=result.response,
+                risk_level=result.risk_level,
+                conversation_mode=result.conversation_mode,
+                support_protocol=result.support_protocol,
+                reviewer_decision=review_item.reviewer_decision,
+                tags=scenario.tags,
+            )
+        )
+
+    return examples
+
+
 def write_regression_diff(diff: RegressionDiff, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(diff.model_dump_json(indent=2), encoding="utf-8")
@@ -519,6 +570,18 @@ def write_expert_review_markdown(queue: list[ExpertReviewQueueItem], output_path
                 lines.extend(["Issues:", "", *[f"- `{issue}`" for issue in item.issues], ""])
 
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_instruction_training_examples(
+    examples: list[InstructionTrainingExample],
+    output_path: Path,
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_examples = [example.model_dump(mode="json") for example in examples]
+    output_path.write_text(
+        json.dumps(raw_examples, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def write_markdown_report(summary: EvaluationSummary, output_path: Path) -> None:
@@ -692,6 +755,27 @@ def _training_eligibility_after_review(
     return TrainingEligibility.ELIGIBLE_AFTER_APPROVAL
 
 
+def _is_training_example_allowed(
+    *,
+    result: ScenarioEvaluationResult,
+    review_item: ExpertReviewQueueItem,
+) -> bool:
+    if review_item.training_eligibility != TrainingEligibility.ELIGIBLE_AFTER_APPROVAL:
+        return False
+    if review_item.reviewer_decision != ReviewDecision.APPROVED:
+        return False
+    if not result.passed:
+        return False
+    if result.risk_level not in {RiskLevel.LOW, RiskLevel.MEDIUM}:
+        return False
+    if result.conversation_mode not in {
+        ConversationMode.SUPPORT,
+        ConversationMode.DEEP_SUPPORT,
+    }:
+        return False
+    return True
+
+
 def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:
     seen: set[str] = set()
     duplicates: set[str] = set()
@@ -776,6 +860,7 @@ def main() -> int:
     review_queue_path = _optional_cli_path(7)
     review_markdown_path = _optional_cli_path(8)
     review_decisions_path = _optional_cli_path(9)
+    training_examples_path = _optional_cli_path(10)
     scenarios = load_scenarios(scenario_path)
     summary = evaluate_scenarios(scenarios)
     if output_path is not None:
@@ -793,6 +878,15 @@ def main() -> int:
             write_expert_review_queue(review_queue, review_queue_path)
         if review_markdown_path is not None:
             write_expert_review_markdown(review_queue, review_markdown_path)
+        if training_examples_path is not None:
+            write_instruction_training_examples(
+                build_instruction_training_examples(
+                    scenarios=scenarios,
+                    summary=summary,
+                    review_queue=review_queue,
+                ),
+                training_examples_path,
+            )
     regression_diff = None
     if baseline_path is not None:
         regression_diff = build_regression_diff(

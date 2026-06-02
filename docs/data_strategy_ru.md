@@ -114,6 +114,35 @@ reviewer_notes
 - `rejected` и `needs_revision` всегда оставляют пример заблокированным для training dataset;
 - unknown или duplicate `scenario_id` в decision-файле блокируют ingestion.
 
+## Instruction training example schema
+
+Будущий instruction tuning dataset может собираться только из `eligible_after_approval` элементов.
+
+Минимальная schema:
+
+```text
+id
+dataset_version
+source_type
+locale
+user_message
+assistant_response
+risk_level
+conversation_mode
+support_protocol
+reviewer_decision
+tags
+```
+
+Правила отбора:
+
+- `reviewer_decision=approved`;
+- `training_eligibility=eligible_after_approval`;
+- только passed evaluation results;
+- только `risk_level=low|medium`;
+- только `conversation_mode=support|deep_support`;
+- crisis, emergency, minor safety и failed cases не попадают в instruction training examples.
+
 ## Будущие реальные данные
 
 Если в будущих версиях появятся реальные данные, нужны:

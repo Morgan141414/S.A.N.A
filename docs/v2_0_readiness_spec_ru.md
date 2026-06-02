@@ -35,6 +35,12 @@ v2.0 не означает real-user testing и не означает клини
   - `needs_revision`;
   - duplicate/unknown scenario guard;
   - safety-critical approval does not unlock training eligibility.
+- Approved low/medium instruction training example schema:
+  - user_message;
+  - assistant_response;
+  - risk/mode/protocol labels;
+  - reviewer_decision;
+  - no crisis/emergency/minor/failed cases.
 
 ## Почему это важно
 
@@ -54,7 +60,8 @@ v2.0 не означает real-user testing и не означает клини
 5. Есть clinician/expert review queue design, кодовый контракт, persisted artifacts и decision ingestion
 6. Есть baseline local model comparison минимум по 2-3 моделям
 7. Есть повторяемые evaluation reports
-8. Есть rollback plan после fine-tuning
+8. Есть approved low/medium instruction example schema
+9. Есть rollback plan после fine-tuning
 ```
 
 ## Ожидаемый момент fine-tuning
@@ -73,4 +80,4 @@ v2.0 не означает real-user testing и не означает клини
 
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
-- подготовить dataset schema для approved low/medium instruction examples;
+- расширить approved low/medium examples через clinician-authored сценарии;
