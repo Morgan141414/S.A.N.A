@@ -215,6 +215,19 @@ blocked_reasons:
 
 Решение: `needs_protocol_repair`.
 
+После v1.9 guarded protocol repair repeated expanded smoke:
+
+```text
+total: 30
+passed: 30
+candidate_used_count: 30
+fallback_count: 0
+repair_count: 7
+blocked_reasons: none
+```
+
+Решение: `accept_for_repeated_synthetic_tests`.
+
 ## Запрещено
 
 - Подставлять реальные сообщения людей в smoke prompts.

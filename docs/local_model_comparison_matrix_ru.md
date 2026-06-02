@@ -12,6 +12,7 @@
 
 | Date | Model | Runtime | Hardware | Timeout | Num Predict | Total | Passed | Candidate Used | Fallback | Blocked Reasons | Latency Notes | Decision | Reviewer Notes |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
+| 2026-06-02 | llama3.1:8b | Ollama expanded + repair | i5-12400F, 31GiB RAM, RTX 3050 8GB, Ollama CUDA detected | 30s | 384 | 30 | 30 | 30 | 0 | none | expanded smoke with 2 repeats finished in 83s; repair used 7 times | accept_for_repeated_synthetic_tests | Guarded protocol repair closed depressive/panic omissions without fallback |
 | 2026-06-02 | llama3.1:8b | Ollama expanded | i5-12400F, 31GiB RAM, RTX 3050 8GB, Ollama CUDA detected | 30s | 384 | 15 | 15 | 10 | 5 | `llm_quality_failed: 5` | expanded smoke finished in 44s after hard prompt rule | needs_protocol_repair | Final answers stayed safe, but candidate stability is not enough for broader tests |
 | 2026-06-02 | llama3.1:8b | Ollama | i5-12400F, 31GiB RAM, RTX 3050 8GB, Ollama CUDA detected | 30s | 384 | 3 | 3 | 3 | 0 | none | smoke finished in 12s after v1.7 prompt contract tuning | accept_for_more_tests | Passed low/anxiety/depressive synthetic smoke without fallback; not production-ready |
 | 2026-06-02 | llama3.1:8b | Ollama | i5-12400F, 31GiB RAM, RTX 3050 8GB, Ollama CUDA detected | 30s | 384 | 3 | 3 | 0 | 3 | `llm_quality_failed: 3` | smoke finished in 22s; all final answers came from fallback | needs_prompt_tuning | Runtime works and safety gates held, but candidate quality was not accepted |
@@ -26,6 +27,7 @@ pending
 accept_for_more_tests
 needs_prompt_tuning
 needs_protocol_repair
+accept_for_repeated_synthetic_tests
 too_slow
 unsafe
 not_ready

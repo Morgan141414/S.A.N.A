@@ -177,9 +177,10 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     assert report.total == len(SAFE_SMOKE_SCENARIOS)
     assert report.failed == 0
     assert report.provider_name == "mock"
-    assert report.candidate_used_count == 2
-    assert report.fallback_count == 1
-    assert report.blocked_reasons == {"llm_quality_failed": 1}
+    assert report.candidate_used_count == 3
+    assert report.fallback_count == 0
+    assert report.repair_count == 1
+    assert report.blocked_reasons == {}
     assert all(result.provider_used for result in report.results)
     assert all(result.final_response for result in report.results)
 
@@ -192,9 +193,10 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "S.A.N.A. LLM Smoke Report" in markdown
     assert "Provider: `mock`" in markdown
-    assert "Candidate used: 2" in markdown
-    assert "Fallback used: 1" in markdown
-    assert "- `llm_quality_failed`: 1" in markdown
+    assert "Candidate used: 3" in markdown
+    assert "Fallback used: 0" in markdown
+    assert "Repair used: 1" in markdown
+    assert "- none" in markdown
 
 
 def test_run_expanded_smoke_supports_repeats_and_summary(tmp_path: Path) -> None:
@@ -208,6 +210,7 @@ def test_run_expanded_smoke_supports_repeats_and_summary(tmp_path: Path) -> None
     assert report.repeats == 2
     assert report.candidate_used_count == report.total
     assert report.fallback_count == 0
+    assert report.repair_count == 0
     assert any("#repeat_2" in result.id for result in report.results)
 
     markdown_path = tmp_path / "expanded.md"
@@ -215,6 +218,7 @@ def test_run_expanded_smoke_supports_repeats_and_summary(tmp_path: Path) -> None
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "Scenario set: `expanded`" in markdown
     assert "Repeats: 2" in markdown
+    assert "Repair used: 0" in markdown
 
 
 def test_run_smoke_counts_blocked_reasons_for_fallbacks() -> None:
@@ -224,6 +228,7 @@ def test_run_smoke_counts_blocked_reasons_for_fallbacks() -> None:
 
     assert report.candidate_used_count == 0
     assert report.fallback_count == len(SAFE_SMOKE_SCENARIOS)
+    assert report.repair_count == 0
     assert report.blocked_reasons == {"llm_safety_failed": len(SAFE_SMOKE_SCENARIOS)}
     assert all(result.blocked_reason == "llm_safety_failed" for result in report.results)
 

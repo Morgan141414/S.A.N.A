@@ -204,6 +204,27 @@ decision: needs_protocol_repair
 
 The next architecture step is guarded protocol repair: deterministic completion of missing required protocol elements followed by another safety and quality pass.
 
+v1.9 implements guarded protocol repair:
+
+```text
+safe LLM candidate
+  -> quality check
+  -> deterministic repair for missing protocol element
+  -> safety check again
+  -> quality check again
+  -> use repaired response only if both pass
+```
+
+Repeated expanded result:
+
+```text
+total: 30
+candidate_used_count: 30
+fallback_count: 0
+repair_count: 7
+decision: accept_for_repeated_synthetic_tests
+```
+
 ## Prototype Stack
 
 - Python

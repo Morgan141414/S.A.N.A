@@ -31,7 +31,9 @@ class GuardedGenerationResult(BaseModel):
     provider_used: bool
     provider_name: str | None = None
     candidate_response: str | None = None
+    repaired_response: str | None = None
     fallback_used: bool
+    repair_used: bool = False
     blocked_reason: str | None = None
     llm_safety_issues: list[str] = Field(default_factory=list)
     llm_quality_issues: list[str] = Field(default_factory=list)
@@ -211,6 +213,40 @@ def build_guarded_response(
         support_protocol=support_protocol,
     )
     if not llm_quality_check.passed:
+        repaired_response = repair_protocol_response(
+            response=llm_safety_check.safe_response,
+            quality_issues=llm_quality_check.issues,
+            support_protocol=support_protocol,
+        )
+        if repaired_response != llm_safety_check.safe_response:
+            repaired_safety_check = check_response_safety(
+                response=repaired_response,
+                risk_assessment=risk_assessment,
+                conversation_mode=conversation_mode,
+            )
+            if repaired_safety_check.passed:
+                repaired_quality_check = check_response_quality(
+                    response=repaired_safety_check.safe_response,
+                    risk_level=risk_assessment.level,
+                    conversation_mode=conversation_mode,
+                    support_protocol=support_protocol,
+                )
+                if repaired_quality_check.passed:
+                    return GuardedGenerationResult(
+                        response=repaired_safety_check.safe_response,
+                        provider_used=True,
+                        provider_name=llm_result.provider_name,
+                        candidate_response=llm_result.text,
+                        repaired_response=repaired_safety_check.safe_response,
+                        fallback_used=False,
+                        repair_used=True,
+                        blocked_reason=None,
+                        llm_safety_issues=[],
+                        llm_quality_issues=llm_quality_check.issues,
+                        safety_check=repaired_safety_check,
+                        quality_check=repaired_quality_check,
+                    )
+
         return _finalize_response(
             response=deterministic_response,
             risk_assessment=risk_assessment,
@@ -229,7 +265,9 @@ def build_guarded_response(
         provider_used=True,
         provider_name=llm_result.provider_name,
         candidate_response=llm_result.text,
+        repaired_response=None,
         fallback_used=False,
+        repair_used=False,
         blocked_reason=None,
         llm_safety_issues=[],
         llm_quality_issues=[],
@@ -248,6 +286,8 @@ def _finalize_response(
     fallback_used: bool,
     blocked_reason: str | None,
     candidate_response: str | None = None,
+    repaired_response: str | None = None,
+    repair_used: bool = False,
     llm_safety_issues: list[str] | None = None,
     llm_quality_issues: list[str] | None = None,
 ) -> GuardedGenerationResult:
@@ -267,10 +307,54 @@ def _finalize_response(
         provider_used=provider_used,
         provider_name=provider_name,
         candidate_response=candidate_response,
+        repaired_response=repaired_response,
         fallback_used=fallback_used,
+        repair_used=repair_used,
         blocked_reason=blocked_reason,
         llm_safety_issues=llm_safety_issues or [],
         llm_quality_issues=llm_quality_issues or [],
         safety_check=safety_check,
         quality_check=quality_check,
     )
+
+
+def repair_protocol_response(
+    response: str,
+    quality_issues: list[str],
+    support_protocol: SupportProtocol,
+) -> str:
+    repaired = response.strip()
+    if not repaired:
+        return response
+
+    additions: list[str] = []
+    if "missing_empathic_reflection" in quality_issues:
+        repaired = f"Я рядом. Похоже, сейчас тебе непросто. {repaired}"
+
+    if "missing_next_step" in quality_issues:
+        additions.append("Попробуй назвать один маленький шаг, который можно сделать в ближайшие 10 минут.")
+
+    if support_protocol == SupportProtocol.DEPRESSIVE_SUPPORT and (
+        "missing_self_harm_screen" in quality_issues
+    ):
+        additions.append("Появлялись ли мысли навредить себе или не жить?")
+
+    if support_protocol == SupportProtocol.PANIC_GROUNDING and (
+        "missing_panic_medical_red_flag_check" in quality_issues
+    ):
+        additions.append("Есть ли боль в груди, обморок, сильная одышка или риск навредить себе?")
+
+    if "missing_focused_question" in quality_issues and not any(
+        issue
+        in {
+            "missing_self_harm_screen",
+            "missing_panic_medical_red_flag_check",
+        }
+        for issue in quality_issues
+    ):
+        additions.append("Что сейчас ощущается самым важным?")
+
+    if additions:
+        repaired = " ".join([repaired, *additions])
+
+    return repaired

@@ -2,6 +2,7 @@ from app.services.llm_contract import (
     MockLLMProvider,
     build_guarded_response,
     build_prompt_policy,
+    repair_protocol_response,
     should_use_llm,
 )
 from app.services.policy_router import ConversationMode, route_policy
@@ -104,10 +105,9 @@ def test_unsafe_llm_candidate_falls_back() -> None:
     assert result.response == expected
 
 
-def test_low_quality_llm_candidate_falls_back() -> None:
+def test_repairable_low_quality_llm_candidate_is_repaired() -> None:
     message = "Мне тревожно и страшно"
     assessment, mode, protocol = _pipeline_inputs(message, age=25)
-    expected = build_support_response(message, assessment, mode, protocol, age=25)
     provider = MockLLMProvider("Расскажи подробнее.")
 
     result = build_guarded_response(
@@ -120,10 +120,13 @@ def test_low_quality_llm_candidate_falls_back() -> None:
     )
 
     assert result.provider_used
-    assert result.fallback_used
-    assert result.blocked_reason == "llm_quality_failed"
+    assert not result.fallback_used
+    assert result.repair_used
+    assert result.repaired_response is not None
+    assert result.blocked_reason is None
     assert "missing_empathic_reflection" in result.llm_quality_issues
-    assert result.response == expected
+    assert result.quality_check.passed
+    assert "Я рядом" in result.response
 
 
 def test_provider_error_falls_back_without_raising() -> None:
@@ -258,3 +261,26 @@ def test_panic_prompt_policy_requires_medical_red_flag_screen() -> None:
     assert "обморок" in policy
     assert "сильная одышка" in policy
     assert "риск навредить себе" in policy
+
+
+def test_repair_protocol_response_adds_depressive_self_harm_screen() -> None:
+    repaired = repair_protocol_response(
+        response="Я рядом. Похоже, сейчас очень тяжело. Попробуй назвать один маленький шаг.",
+        quality_issues=["missing_self_harm_screen"],
+        support_protocol=SupportProtocol.DEPRESSIVE_SUPPORT,
+    )
+
+    assert "Появлялись ли мысли навредить себе или не жить?" in repaired
+
+
+def test_repair_protocol_response_adds_panic_red_flag_screen() -> None:
+    repaired = repair_protocol_response(
+        response="Я рядом. Похоже, тело сейчас в тревоге. Попробуй сделать длинный выдох.",
+        quality_issues=["missing_panic_medical_red_flag_check"],
+        support_protocol=SupportProtocol.PANIC_GROUNDING,
+    )
+
+    assert "боль в груди" in repaired
+    assert "обморок" in repaired
+    assert "сильная одышка" in repaired
+    assert "риск навредить себе" in repaired

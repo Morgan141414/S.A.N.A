@@ -58,6 +58,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.7 release readiness](docs/release_v1_7_ru.md)
 - [v1.8 expanded local LLM evaluation set](docs/v1_8_spec_ru.md)
 - [v1.8 release readiness](docs/release_v1_8_ru.md)
+- [v1.9 guarded protocol repair](docs/v1_9_spec_ru.md)
+- [v1.9 release readiness](docs/release_v1_9_ru.md)
 - [Development tools](docs/development_tools_ru.md)
 
 ## First Milestone
@@ -123,4 +125,4 @@ Current local model status:
 llama3.1:8b -> accept_for_more_tests
 ```
 
-The core gated smoke passes with candidate responses on the first adult low/medium synthetic set. Expanded smoke shows the model still needs protocol repair before broader testing.
+The expanded repeated smoke passes with guarded protocol repair. This allows longer synthetic/red-team testing, not real-user testing.

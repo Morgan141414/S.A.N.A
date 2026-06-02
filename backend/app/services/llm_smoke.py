@@ -34,10 +34,12 @@ class SmokeScenarioResult(BaseModel):
     provider_name: str | None
     candidate_used: bool
     fallback_used: bool
+    repair_used: bool
     blocked_reason: str | None
     llm_safety_issues: list[str]
     llm_quality_issues: list[str]
     candidate_response: str | None
+    repaired_response: str | None
     final_response: str
 
 
@@ -52,6 +54,7 @@ class SmokeReport(BaseModel):
     repeats: int = 1
     candidate_used_count: int = 0
     fallback_count: int = 0
+    repair_count: int = 0
     blocked_reasons: dict[str, int] = Field(default_factory=dict)
     results: list[SmokeScenarioResult]
 
@@ -225,6 +228,7 @@ def run_smoke(
         repeats=repeats,
         candidate_used_count=sum(1 for result in results if result.candidate_used),
         fallback_count=sum(1 for result in results if result.fallback_used),
+        repair_count=sum(1 for result in results if result.repair_used),
         blocked_reasons=blocked_reasons,
         results=results,
     )
@@ -286,6 +290,7 @@ def write_smoke_markdown_report(report: SmokeReport, output_path: Path) -> None:
         f"- Repeats: {report.repeats}",
         f"- Candidate used: {report.candidate_used_count}",
         f"- Fallback used: {report.fallback_count}",
+        f"- Repair used: {report.repair_count}",
         "",
         "## Blocked Reasons",
         "",
@@ -306,6 +311,7 @@ def write_smoke_markdown_report(report: SmokeReport, output_path: Path) -> None:
         status = "passed" if result.passed else "failed"
         lines.append(
             f"- `{result.id}`: {status}; fallback={str(result.fallback_used).lower()}; "
+            f"repair={str(result.repair_used).lower()}; "
             f"blocked_reason=`{result.blocked_reason}`"
         )
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -349,10 +355,12 @@ def _evaluate_smoke_scenario(
         provider_name=guarded_response.provider_name,
         candidate_used=guarded_response.provider_used and not guarded_response.fallback_used,
         fallback_used=guarded_response.fallback_used,
+        repair_used=guarded_response.repair_used,
         blocked_reason=guarded_response.blocked_reason,
         llm_safety_issues=guarded_response.llm_safety_issues,
         llm_quality_issues=guarded_response.llm_quality_issues,
         candidate_response=guarded_response.candidate_response,
+        repaired_response=guarded_response.repaired_response,
         final_response=guarded_response.response,
     )
 
