@@ -74,6 +74,16 @@ repair_count
 per-protocol candidate/fallback/repair ratio
 ```
 
+В основной evaluation pipeline `protocol_summary` должен показывать:
+
+```text
+total
+passed
+failed
+pass_rate
+failures_by_issue
+```
+
 ## P0 для v0.4
 
 - Evaluation fixture содержит минимум 40 P0 сценариев.

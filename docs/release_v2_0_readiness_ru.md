@@ -10,6 +10,7 @@
 
 - Добавлен `language_artifact` quality check.
 - Добавлен `protocol_summary` в LLM smoke report.
+- Добавлен `protocol_summary` в основной evaluation report.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -21,4 +22,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset и добавить per-protocol scoring для основной evaluation pipeline.
+Расширить synthetic/red-team dataset и описать clinician/expert review queue.

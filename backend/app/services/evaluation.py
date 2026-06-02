@@ -80,6 +80,14 @@ class ScenarioEvaluationResult(BaseModel):
     response: str
 
 
+class ProtocolEvaluationSummary(BaseModel):
+    total: int = 0
+    passed: int = 0
+    failed: int = 0
+    pass_rate: float = 0.0
+    failures_by_issue: dict[str, int] = Field(default_factory=dict)
+
+
 class EvaluationSummary(BaseModel):
     total: int
     passed: int
@@ -94,6 +102,7 @@ class EvaluationSummary(BaseModel):
     coverage_by_conversation_mode: dict[str, int]
     coverage_by_support_protocol: dict[str, int]
     coverage_by_tag: dict[str, int]
+    protocol_summary: dict[str, ProtocolEvaluationSummary] = Field(default_factory=dict)
     results: list[ScenarioEvaluationResult]
 
 
@@ -216,6 +225,8 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
         for tag in scenario_by_id[result.id].tags:
             _increment(failures_by_tag, tag)
 
+    protocol_summary = _build_protocol_summary(results)
+
     return EvaluationSummary(
         total=len(results),
         passed=passed,
@@ -230,6 +241,7 @@ def evaluate_scenarios(scenarios: list[EvaluationScenario]) -> EvaluationSummary
         coverage_by_conversation_mode=coverage_by_conversation_mode,
         coverage_by_support_protocol=coverage_by_support_protocol,
         coverage_by_tag=coverage_by_tag,
+        protocol_summary=protocol_summary,
         results=results,
     )
 
@@ -383,6 +395,10 @@ def write_markdown_report(summary: EvaluationSummary, output_path: Path) -> None
         "",
         *_format_counter(summary.coverage_by_support_protocol),
         "",
+        "## Protocol Summary",
+        "",
+        *_format_protocol_summary(summary.protocol_summary),
+        "",
         "## Failures",
         "",
     ]
@@ -443,6 +459,26 @@ def _increment(counter: dict[str, int], key: str) -> None:
     counter[key] = counter.get(key, 0) + 1
 
 
+def _build_protocol_summary(
+    results: list[ScenarioEvaluationResult],
+) -> dict[str, ProtocolEvaluationSummary]:
+    summary: dict[str, ProtocolEvaluationSummary] = {}
+    for result in results:
+        protocol = result.support_protocol.value
+        item = summary.setdefault(protocol, ProtocolEvaluationSummary())
+        item.total += 1
+        if result.passed:
+            item.passed += 1
+        else:
+            item.failed += 1
+            for issue in result.issues:
+                _increment(item.failures_by_issue, issue)
+
+    for item in summary.values():
+        item.pass_rate = round(item.passed / item.total, 4) if item.total else 0.0
+    return summary
+
+
 def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:
     seen: set[str] = set()
     duplicates: set[str] = set()
@@ -481,6 +517,16 @@ def _format_counter(counter: dict[str, int]) -> list[str]:
     if not counter:
         return ["No data."]
     return [f"- `{key}`: {value}" for key, value in sorted(counter.items())]
+
+
+def _format_protocol_summary(counter: dict[str, ProtocolEvaluationSummary]) -> list[str]:
+    if not counter:
+        return ["No data."]
+    return [
+        f"- `{key}`: total={value.total}; passed={value.passed}; "
+        f"failed={value.failed}; pass_rate={value.pass_rate}"
+        for key, value in sorted(counter.items())
+    ]
 
 
 def main() -> int:

@@ -15,6 +15,12 @@ v2.0 не означает real-user testing и не означает клини
   - candidate_used;
   - fallback;
   - repair.
+- `protocol_summary` в основной evaluation report:
+  - total;
+  - passed;
+  - failed;
+  - pass_rate;
+  - failures_by_issue.
 
 ## Почему это важно
 
@@ -53,6 +59,5 @@ v2.0 не означает real-user testing и не означает клини
 
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
-- добавить per-protocol scoring в evaluation reports;
 - описать clinician review queue;
 - подготовить dataset schema для будущего tuning.
