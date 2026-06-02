@@ -270,7 +270,7 @@ v1.8 расширяет local LLM smoke до 15 adult low/medium synthetic сц�
 
 v1.9 добавляет guarded protocol repair: безопасный, но неполный LLM-кандидат может быть deterministic-образом дополнен обязательной protocol-фразой, после чего снова проходит safety и quality checks. Repeated expanded smoke дал `candidate_used_count=30`, `fallback_count=0`, `repair_count=7`.
 
-v2.0 readiness track добавляет language artifact checks, per-protocol smoke summary, per-protocol evaluation summary, clinician/expert review queue contract, persisted review artifacts и gates перед deep learning. Обучение модели можно начинать только после расширенного датасета, метрик, baseline comparison и review-процесса.
+v2.0 readiness track добавляет language artifact checks, per-protocol smoke summary, per-protocol evaluation summary, clinician/expert review queue contract, persisted review artifacts, reviewer decision ingestion и gates перед deep learning. Обучение модели можно начинать только после расширенного датасета, метрик, baseline comparison и review-процесса.
 
 ## 16. Версионные спецификации
 
@@ -284,7 +284,7 @@ v2.0 readiness track добавляет language artifact checks, per-protocol s
 - v1.7: `docs/v1_7_spec_ru.md` - local LLM prompt contract tuning: smoke прошел без fallback, решение `accept_for_more_tests`.
 - v1.8: `docs/v1_8_spec_ru.md` - expanded local LLM evaluation set: 15 сценариев, решение `needs_protocol_repair`.
 - v1.9: `docs/v1_9_spec_ru.md` - guarded protocol repair: repeated expanded smoke без fallback, решение `accept_for_repeated_synthetic_tests`.
-- v2.0 readiness: `docs/v2_0_readiness_spec_ru.md` - language artifact checks, smoke/evaluation protocol summary, clinician/expert review queue contract, persisted review artifacts и gates перед deep learning.
+- v2.0 readiness: `docs/v2_0_readiness_spec_ru.md` - language artifact checks, smoke/evaluation protocol summary, clinician/expert review queue contract, persisted review artifacts, reviewer decision ingestion и gates перед deep learning.
 
 ## 17. Главный принцип
 

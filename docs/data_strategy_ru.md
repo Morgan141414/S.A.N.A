@@ -82,6 +82,8 @@ needs_revision
 blocked_pending_review
 blocked_safety_critical
 blocked_failed_evaluation
+blocked_review_rejected
+blocked_needs_revision
 eligible_after_approval
 ```
 
@@ -95,6 +97,22 @@ evaluation_reports/v0_5_expert_review_queue.md
 ```
 
 JSON используется для будущей автоматизации review/dataset pipeline, Markdown - для ручной проверки.
+
+Reviewer decision ingestion принимает JSON со следующей минимальной schema:
+
+```text
+scenario_id
+reviewer_decision
+reviewer_notes
+```
+
+Правила ingestion:
+
+- `approved` может открыть training eligibility только для passed low/medium review cases;
+- `approved` не снимает блокировку с high/emergency/minor safety cases;
+- `approved` не снимает блокировку с failed evaluation cases;
+- `rejected` и `needs_revision` всегда оставляют пример заблокированным для training dataset;
+- unknown или duplicate `scenario_id` в decision-файле блокируют ingestion.
 
 ## Будущие реальные данные
 

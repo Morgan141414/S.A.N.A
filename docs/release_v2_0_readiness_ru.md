@@ -13,6 +13,7 @@
 - Добавлен `protocol_summary` в основной evaluation report.
 - Добавлен кодовый контракт clinician/expert review queue.
 - Добавлены persisted expert review artifacts для `make evaluate-report` и `make evaluate-readiness`.
+- Добавлен reviewer decision ingestion с защитой от ошибочного approval safety-critical/failed cases.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -24,4 +25,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset, добавить reviewer decision ingestion и подготовить dataset schema для будущего tuning.
+Расширить synthetic/red-team dataset и подготовить dataset schema для approved low/medium instruction examples.

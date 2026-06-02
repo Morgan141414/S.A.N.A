@@ -11,6 +11,26 @@ REGRESSION_DIFF_PATH="${5:-}"
 READINESS_PATH="${6:-}"
 REVIEW_QUEUE_PATH="${7:-}"
 REVIEW_MARKDOWN_PATH="${8:-}"
+REVIEW_DECISIONS_PATH="${9:-}"
+
+resolve_optional_path() {
+  local input_path="$1"
+  if [ -z "$input_path" ] || [[ "$input_path" = /* ]]; then
+    printf "%s" "$input_path"
+  else
+    printf "%s/%s" "$ROOT_DIR" "$input_path"
+  fi
+}
+
+SCENARIO_PATH="$(resolve_optional_path "$SCENARIO_PATH")"
+REPORT_PATH="$(resolve_optional_path "$REPORT_PATH")"
+MARKDOWN_REPORT_PATH="$(resolve_optional_path "$MARKDOWN_REPORT_PATH")"
+BASELINE_PATH="$(resolve_optional_path "$BASELINE_PATH")"
+REGRESSION_DIFF_PATH="$(resolve_optional_path "$REGRESSION_DIFF_PATH")"
+READINESS_PATH="$(resolve_optional_path "$READINESS_PATH")"
+REVIEW_QUEUE_PATH="$(resolve_optional_path "$REVIEW_QUEUE_PATH")"
+REVIEW_MARKDOWN_PATH="$(resolve_optional_path "$REVIEW_MARKDOWN_PATH")"
+REVIEW_DECISIONS_PATH="$(resolve_optional_path "$REVIEW_DECISIONS_PATH")"
 
 cd "$BACKEND_DIR"
 
@@ -39,7 +59,8 @@ if [ -n "$BASELINE_PATH" ] && [ -n "$REGRESSION_DIFF_PATH" ] && [ -n "$READINESS
     "$REGRESSION_DIFF_PATH" \
     "$READINESS_PATH" \
     "$REVIEW_QUEUE_PATH" \
-    "$REVIEW_MARKDOWN_PATH"
+    "$REVIEW_MARKDOWN_PATH" \
+    "$REVIEW_DECISIONS_PATH"
 elif [ -n "$REPORT_PATH" ] && [ -n "$MARKDOWN_REPORT_PATH" ]; then
   python -m app.services.evaluation \
     "$SCENARIO_PATH" \
@@ -49,7 +70,8 @@ elif [ -n "$REPORT_PATH" ] && [ -n "$MARKDOWN_REPORT_PATH" ]; then
     "" \
     "" \
     "$REVIEW_QUEUE_PATH" \
-    "$REVIEW_MARKDOWN_PATH"
+    "$REVIEW_MARKDOWN_PATH" \
+    "$REVIEW_DECISIONS_PATH"
 elif [ -n "$REPORT_PATH" ]; then
   python -m app.services.evaluation "$SCENARIO_PATH" "$REPORT_PATH"
 else

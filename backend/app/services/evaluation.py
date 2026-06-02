@@ -142,6 +142,8 @@ class TrainingEligibility(StrEnum):
     BLOCKED_PENDING_REVIEW = "blocked_pending_review"
     BLOCKED_SAFETY_CRITICAL = "blocked_safety_critical"
     BLOCKED_FAILED_EVALUATION = "blocked_failed_evaluation"
+    BLOCKED_REVIEW_REJECTED = "blocked_review_rejected"
+    BLOCKED_NEEDS_REVISION = "blocked_needs_revision"
     ELIGIBLE_AFTER_APPROVAL = "eligible_after_approval"
 
 
@@ -170,6 +172,12 @@ class ExpertReviewQueueItem(BaseModel):
     training_eligibility: TrainingEligibility
 
 
+class ExpertReviewDecisionInput(BaseModel):
+    scenario_id: str
+    reviewer_decision: ReviewDecision
+    reviewer_notes: str = ""
+
+
 def load_scenarios(path: Path) -> list[EvaluationScenario]:
     raw_data = json.loads(path.read_text(encoding="utf-8"))
     scenarios = [EvaluationScenario.model_validate(item) for item in raw_data]
@@ -179,6 +187,13 @@ def load_scenarios(path: Path) -> list[EvaluationScenario]:
 
 def load_evaluation_report(path: Path) -> EvaluationSummary:
     return EvaluationSummary.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def load_expert_review_decisions(path: Path) -> list[ExpertReviewDecisionInput]:
+    raw_data = json.loads(path.read_text(encoding="utf-8"))
+    decisions = [ExpertReviewDecisionInput.model_validate(item) for item in raw_data]
+    _validate_unique_review_decisions(decisions)
+    return decisions
 
 
 def evaluate_scenario(scenario: EvaluationScenario) -> ScenarioEvaluationResult:
@@ -399,6 +414,38 @@ def build_expert_review_queue(
         )
 
     return items
+
+
+def apply_expert_review_decisions(
+    queue: list[ExpertReviewQueueItem],
+    decisions: list[ExpertReviewDecisionInput],
+) -> list[ExpertReviewQueueItem]:
+    _validate_unique_review_decisions(decisions)
+    decision_by_id = {decision.scenario_id: decision for decision in decisions}
+    unknown_ids = sorted(set(decision_by_id) - {item.scenario_id for item in queue})
+    if unknown_ids:
+        joined = ", ".join(unknown_ids)
+        raise ValueError(f"review decisions reference unknown scenario ids: {joined}")
+
+    reviewed_items: list[ExpertReviewQueueItem] = []
+    for item in queue:
+        decision = decision_by_id.get(item.scenario_id)
+        if decision is None:
+            reviewed_items.append(item)
+            continue
+
+        updated_item = item.model_copy(update={"reviewer_decision": decision.reviewer_decision})
+        reviewed_items.append(
+            updated_item.model_copy(
+                update={
+                    "training_eligibility": _training_eligibility_after_review(
+                        updated_item
+                    )
+                }
+            )
+        )
+
+    return reviewed_items
 
 
 def write_regression_diff(diff: RegressionDiff, output_path: Path) -> None:
@@ -626,6 +673,25 @@ def _training_eligibility(
     return TrainingEligibility.ELIGIBLE_AFTER_APPROVAL
 
 
+def _training_eligibility_after_review(
+    item: ExpertReviewQueueItem,
+) -> TrainingEligibility:
+    if item.reviewer_decision == ReviewDecision.REJECTED:
+        return TrainingEligibility.BLOCKED_REVIEW_REJECTED
+    if item.reviewer_decision == ReviewDecision.NEEDS_REVISION:
+        return TrainingEligibility.BLOCKED_NEEDS_REVISION
+    if item.reviewer_decision != ReviewDecision.APPROVED:
+        return item.training_eligibility
+    if not item.passed:
+        return TrainingEligibility.BLOCKED_FAILED_EVALUATION
+    if (
+        item.risk_level in {RiskLevel.HIGH, RiskLevel.EMERGENCY}
+        or item.conversation_mode == ConversationMode.MINOR_SAFETY
+    ):
+        return TrainingEligibility.BLOCKED_SAFETY_CRITICAL
+    return TrainingEligibility.ELIGIBLE_AFTER_APPROVAL
+
+
 def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:
     seen: set[str] = set()
     duplicates: set[str] = set()
@@ -636,6 +702,18 @@ def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:
     if duplicates:
         joined = ", ".join(sorted(duplicates))
         raise ValueError(f"duplicate evaluation scenario ids: {joined}")
+
+
+def _validate_unique_review_decisions(decisions: list[ExpertReviewDecisionInput]) -> None:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for decision in decisions:
+        if decision.scenario_id in seen:
+            duplicates.add(decision.scenario_id)
+        seen.add(decision.scenario_id)
+    if duplicates:
+        joined = ", ".join(sorted(duplicates))
+        raise ValueError(f"duplicate expert review decision ids: {joined}")
 
 
 def _result_change_details(
@@ -697,6 +775,7 @@ def main() -> int:
     readiness_path = _optional_cli_path(6)
     review_queue_path = _optional_cli_path(7)
     review_markdown_path = _optional_cli_path(8)
+    review_decisions_path = _optional_cli_path(9)
     scenarios = load_scenarios(scenario_path)
     summary = evaluate_scenarios(scenarios)
     if output_path is not None:
@@ -705,6 +784,11 @@ def main() -> int:
         write_markdown_report(summary, markdown_output_path)
     if review_queue_path is not None or review_markdown_path is not None:
         review_queue = build_expert_review_queue(scenarios=scenarios, summary=summary)
+        if review_decisions_path is not None:
+            review_queue = apply_expert_review_decisions(
+                queue=review_queue,
+                decisions=load_expert_review_decisions(review_decisions_path),
+            )
         if review_queue_path is not None:
             write_expert_review_queue(review_queue, review_queue_path)
         if review_markdown_path is not None:

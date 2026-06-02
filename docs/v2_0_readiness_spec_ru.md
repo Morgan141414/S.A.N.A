@@ -29,6 +29,12 @@ v2.0 не означает real-user testing и не означает клини
 - Persisted expert review artifacts:
   - `evaluation_reports/v0_5_expert_review_queue.json`;
   - `evaluation_reports/v0_5_expert_review_queue.md`.
+- Reviewer decision ingestion:
+  - `approved`;
+  - `rejected`;
+  - `needs_revision`;
+  - duplicate/unknown scenario guard;
+  - safety-critical approval does not unlock training eligibility.
 
 ## Почему это важно
 
@@ -45,7 +51,7 @@ v2.0 не означает real-user testing и не означает клини
 2. Все сценарии имеют expected risk/mode/protocol labels
 3. Есть per-protocol quality scoring
 4. Есть политика данных и запрет real-user data без consent/anonymization
-5. Есть clinician/expert review queue design, кодовый контракт и persisted artifacts
+5. Есть clinician/expert review queue design, кодовый контракт, persisted artifacts и decision ingestion
 6. Есть baseline local model comparison минимум по 2-3 моделям
 7. Есть повторяемые evaluation reports
 8. Есть rollback plan после fine-tuning
@@ -67,5 +73,4 @@ v2.0 не означает real-user testing и не означает клини
 
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
-- добавить reviewer decision ingestion;
-- подготовить dataset schema для будущего tuning.
+- подготовить dataset schema для approved low/medium instruction examples;
