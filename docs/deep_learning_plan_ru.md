@@ -58,8 +58,13 @@ Dry-run проверяет:
 - отсутствие crisis/emergency/minor_safety;
 - train/validation split;
 - estimated optimizer steps.
+- approximate VRAM/RAM estimate;
+- hardware risk;
+- GPU availability.
 
 Если manifest имеет `status=blocked_until_readiness`, dry-run должен быть `blocked=true`.
+
+Hardware estimate является эвристикой, а не разрешением на обучение. Если estimate близок к лимиту VRAM, dry-run должен явно показать warning. На RTX 3050 8GB 8B QLoRA считается tight/risky target, а full LoRA для 8B должен блокироваться по памяти.
 
 ## Минимальная training manifest schema
 
@@ -71,6 +76,8 @@ dataset_path
 output_dir
 status
 hyperparameters
+adapter_config
+hardware_profile
 required_gates
 allowed_risk_levels
 forbidden_conversation_modes
@@ -124,6 +131,9 @@ batch_size = 1
 gradient_accumulation_steps = 16
 max_seq_length = 2048
 validation_split = 0.1
+adapter_rank = 16
+quantization_bits = 4
+gradient_checkpointing = true
 ```
 
 Этот эксперимент должен быть synthetic/clinician-authored only и не должен включать real-user data.

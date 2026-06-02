@@ -51,6 +51,7 @@ v2.0 не означает real-user testing и не означает клини
   - validates manifest and dataset;
   - computes train/validation split;
   - estimates optimizer steps;
+  - estimates VRAM/RAM and hardware risk;
   - does not modify model weights.
 
 ## Почему это важно
@@ -73,7 +74,7 @@ v2.0 не означает real-user testing и не означает клини
 7. Есть повторяемые evaluation reports
 8. Есть approved low/medium instruction example schema
 9. Есть draft training manifest
-10. Есть dry-run training report без изменения весов модели
+10. Есть dry-run training report без изменения весов модели и с hardware estimate
 11. Есть rollback plan после fine-tuning
 ```
 
@@ -94,4 +95,4 @@ v2.0 не означает real-user testing и не означает клини
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
 - расширить approved low/medium examples через clinician-authored сценарии;
-- расширить dry-run до hardware/memory estimate;
+- расширить dry-run до реального profiler evidence после установки training dependencies;

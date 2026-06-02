@@ -17,6 +17,7 @@
 - Добавлена schema approved low/medium instruction training examples.
 - Добавлен draft training manifest для будущего LoRA/QLoRA без запуска обучения.
 - Добавлен `make training-dry-run` без изменения весов модели.
+- Добавлен hardware/memory estimate в training dry-run.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -28,4 +29,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset, approved low/medium examples и добавить hardware/memory estimate для dry-run.
+Расширить synthetic/red-team dataset, approved low/medium examples и добавить profiler evidence после установки training dependencies.
