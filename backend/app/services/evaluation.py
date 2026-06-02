@@ -131,6 +131,20 @@ class ReadinessStatus(StrEnum):
     NOT_READY = "not_ready"
 
 
+class ReviewDecision(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    NEEDS_REVISION = "needs_revision"
+
+
+class TrainingEligibility(StrEnum):
+    BLOCKED_PENDING_REVIEW = "blocked_pending_review"
+    BLOCKED_SAFETY_CRITICAL = "blocked_safety_critical"
+    BLOCKED_FAILED_EVALUATION = "blocked_failed_evaluation"
+    ELIGIBLE_AFTER_APPROVAL = "eligible_after_approval"
+
+
 class ReadinessDecision(BaseModel):
     status: ReadinessStatus
     blocking_reasons: list[str]
@@ -139,6 +153,21 @@ class ReadinessDecision(BaseModel):
     pass_rate: float
     baseline_compared: bool
     has_blocking_regressions: bool
+
+
+class ExpertReviewQueueItem(BaseModel):
+    scenario_id: str
+    priority: ScenarioPriority
+    source_type: ScenarioSourceType
+    case_family: str
+    risk_level: RiskLevel
+    conversation_mode: ConversationMode
+    support_protocol: SupportProtocol
+    passed: bool
+    issues: list[str]
+    review_reasons: list[str]
+    reviewer_decision: ReviewDecision = ReviewDecision.PENDING
+    training_eligibility: TrainingEligibility
 
 
 def load_scenarios(path: Path) -> list[EvaluationScenario]:
@@ -334,6 +363,44 @@ def decide_readiness(
     )
 
 
+def build_expert_review_queue(
+    scenarios: list[EvaluationScenario],
+    summary: EvaluationSummary,
+) -> list[ExpertReviewQueueItem]:
+    scenario_by_id = {scenario.id: scenario for scenario in scenarios}
+    items: list[ExpertReviewQueueItem] = []
+
+    for result in summary.results:
+        scenario = scenario_by_id.get(result.id)
+        if scenario is None:
+            continue
+
+        review_reasons = _review_reasons(scenario=scenario, result=result)
+        if not review_reasons:
+            continue
+
+        items.append(
+            ExpertReviewQueueItem(
+                scenario_id=scenario.id,
+                priority=scenario.priority,
+                source_type=scenario.source_type,
+                case_family=scenario.case_family,
+                risk_level=result.risk_level,
+                conversation_mode=result.conversation_mode,
+                support_protocol=result.support_protocol,
+                passed=result.passed,
+                issues=result.issues,
+                review_reasons=review_reasons,
+                training_eligibility=_training_eligibility(
+                    scenario=scenario,
+                    result=result,
+                ),
+            )
+        )
+
+    return items
+
+
 def write_regression_diff(diff: RegressionDiff, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(diff.model_dump_json(indent=2), encoding="utf-8")
@@ -477,6 +544,40 @@ def _build_protocol_summary(
     for item in summary.values():
         item.pass_rate = round(item.passed / item.total, 4) if item.total else 0.0
     return summary
+
+
+def _review_reasons(
+    scenario: EvaluationScenario,
+    result: ScenarioEvaluationResult,
+) -> list[str]:
+    reasons: list[str] = []
+    if scenario.review_required:
+        reasons.append("scenario_review_required")
+    if not result.passed:
+        reasons.append("evaluation_failed")
+    if result.risk_level in {RiskLevel.HIGH, RiskLevel.EMERGENCY}:
+        reasons.append("safety_critical_risk")
+    if result.conversation_mode == ConversationMode.MINOR_SAFETY:
+        reasons.append("minor_safety")
+    if result.quality_check.issues:
+        reasons.append("quality_issues")
+    return reasons
+
+
+def _training_eligibility(
+    scenario: EvaluationScenario,
+    result: ScenarioEvaluationResult,
+) -> TrainingEligibility:
+    if not result.passed:
+        return TrainingEligibility.BLOCKED_FAILED_EVALUATION
+    if (
+        result.risk_level in {RiskLevel.HIGH, RiskLevel.EMERGENCY}
+        or result.conversation_mode == ConversationMode.MINOR_SAFETY
+    ):
+        return TrainingEligibility.BLOCKED_SAFETY_CRITICAL
+    if scenario.review_required:
+        return TrainingEligibility.BLOCKED_PENDING_REVIEW
+    return TrainingEligibility.ELIGIBLE_AFTER_APPROVAL
 
 
 def _validate_unique_ids(scenarios: list[EvaluationScenario]) -> None:

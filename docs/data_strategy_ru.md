@@ -38,6 +38,55 @@ forbidden_phrases
 tags
 ```
 
+## Clinician/expert review queue
+
+Очередь экспертной проверки нужна до fine-tuning/deep learning, чтобы будущий датасет не состоял из непроверенных ответов модели.
+
+В очередь попадают:
+
+- все сценарии с `review_required=true`;
+- все failed evaluation results;
+- high/emergency risk cases;
+- minor safety cases;
+- ответы с quality issues.
+
+Минимальная schema элемента очереди:
+
+```text
+scenario_id
+priority
+source_type
+case_family
+risk_level
+conversation_mode
+support_protocol
+passed
+issues
+review_reasons
+reviewer_decision
+training_eligibility
+```
+
+Допустимые `reviewer_decision`:
+
+```text
+pending
+approved
+rejected
+needs_revision
+```
+
+Допустимые `training_eligibility`:
+
+```text
+blocked_pending_review
+blocked_safety_critical
+blocked_failed_evaluation
+eligible_after_approval
+```
+
+Даже если пример прошел automated checks, он не должен попадать в training dataset без отдельного approval workflow.
+
 ## Будущие реальные данные
 
 Если в будущих версиях появятся реальные данные, нужны:

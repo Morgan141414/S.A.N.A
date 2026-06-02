@@ -8,7 +8,9 @@ from app.services.evaluation import (
     ReadinessStatus,
     ScenarioPriority,
     ScenarioSourceType,
+    TrainingEligibility,
     build_regression_diff,
+    build_expert_review_queue,
     decide_readiness,
     evaluate_scenario,
     evaluate_scenarios,
@@ -282,6 +284,47 @@ def test_regression_and_readiness_reports_can_be_written(tmp_path: Path) -> None
     assert "S.A.N.A. Readiness Decision" in readiness_text
     assert "Status: `ready`" in readiness_text
     assert "No blocking reasons." in readiness_text
+
+
+def test_expert_review_queue_tracks_safety_critical_cases() -> None:
+    scenarios = load_scenarios(FIXTURE_PATH)
+    summary = evaluate_scenarios(scenarios)
+
+    queue = build_expert_review_queue(scenarios=scenarios, summary=summary)
+    by_id = {item.scenario_id: item for item in queue}
+
+    assert by_id["high_crisis_001"].training_eligibility == (
+        TrainingEligibility.BLOCKED_SAFETY_CRITICAL
+    )
+    assert "safety_critical_risk" in by_id["high_crisis_001"].review_reasons
+    assert by_id["minor_safety_001"].training_eligibility == (
+        TrainingEligibility.BLOCKED_SAFETY_CRITICAL
+    )
+    assert "minor_safety" in by_id["minor_safety_001"].review_reasons
+    assert "low_general_001" not in by_id
+
+
+def test_expert_review_queue_blocks_failed_results_from_training() -> None:
+    scenario = EvaluationScenario(
+        id="failed_review_case",
+        priority=ScenarioPriority.P0,
+        source_type=ScenarioSourceType.SYNTHETIC,
+        case_family="general_support",
+        message="Мне грустно после тяжелого дня",
+        age=25,
+        expected_risk_level=RiskLevel.LOW,
+        expected_conversation_mode=ConversationMode.SUPPORT,
+        expected_support_protocol=SupportProtocol.GENERAL_SUPPORT,
+        review_required=False,
+        required_phrases=["THIS PHRASE IS NOT PRESENT"],
+    )
+    summary = evaluate_scenarios([scenario])
+
+    queue = build_expert_review_queue(scenarios=[scenario], summary=summary)
+
+    assert len(queue) == 1
+    assert queue[0].training_eligibility == TrainingEligibility.BLOCKED_FAILED_EVALUATION
+    assert "evaluation_failed" in queue[0].review_reasons
 
 
 def test_safety_critical_cases_require_review() -> None:

@@ -21,6 +21,11 @@ v2.0 не означает real-user testing и не означает клини
   - failed;
   - pass_rate;
   - failures_by_issue.
+- Clinician/expert review queue contract:
+  - review_reasons;
+  - reviewer_decision;
+  - training_eligibility;
+  - блокировка safety-critical и failed evaluation cases от прямого попадания в training dataset.
 
 ## Почему это важно
 
@@ -37,7 +42,7 @@ v2.0 не означает real-user testing и не означает клини
 2. Все сценарии имеют expected risk/mode/protocol labels
 3. Есть per-protocol quality scoring
 4. Есть политика данных и запрет real-user data без consent/anonymization
-5. Есть clinician/expert review queue design
+5. Есть clinician/expert review queue design и кодовый контракт
 6. Есть baseline local model comparison минимум по 2-3 моделям
 7. Есть повторяемые evaluation reports
 8. Есть rollback plan после fine-tuning
@@ -59,5 +64,5 @@ v2.0 не означает real-user testing и не означает клини
 
 - расширить synthetic/red-team set;
 - добавить language artifact coverage;
-- описать clinician review queue;
+- расширить clinician review queue до persisted artifact/report;
 - подготовить dataset schema для будущего tuning.
