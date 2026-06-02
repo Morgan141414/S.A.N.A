@@ -54,6 +54,9 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.5 release readiness](docs/release_v1_5_ru.md)
 - [v1.6 first local model smoke result](docs/v1_6_spec_ru.md)
 - [v1.6 release readiness](docs/release_v1_6_ru.md)
+- [v1.7 local LLM prompt contract tuning](docs/v1_7_spec_ru.md)
+- [v1.7 release readiness](docs/release_v1_7_ru.md)
+- [Development tools](docs/development_tools_ru.md)
 
 ## First Milestone
 
@@ -114,7 +117,7 @@ make llm-smoke-ollama-local
 Current local model status:
 
 ```text
-llama3.1:8b -> needs_prompt_tuning
+llama3.1:8b -> accept_for_more_tests
 ```
 
-The first gated smoke passed through fallback only, so the runtime is usable for engineering tests, but the model is not accepted for real-user testing.
+The current gated smoke passes with candidate responses on the first adult low/medium synthetic set. This allows expanded synthetic/red-team testing, not real-user testing.

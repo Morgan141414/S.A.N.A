@@ -220,3 +220,28 @@ def test_prompt_policy_contains_safety_boundaries() -> None:
     assert "Не ставь окончательный диагноз" in policy
     assert "Не назначай" in policy
     assert "Support protocol: depressive_support" in policy
+
+
+def test_prompt_policy_contains_quality_contract_markers() -> None:
+    policy = build_prompt_policy(
+        ConversationMode.SUPPORT,
+        SupportProtocol.GENERAL_SUPPORT,
+        locale="ru",
+    )
+
+    assert "Я рядом" in policy
+    assert "Похоже" in policy
+    assert "один безопасный следующий шаг" in policy
+    assert "одним коротким сфокусированным вопросом" in policy
+
+
+def test_depressive_prompt_policy_requires_self_harm_screen() -> None:
+    policy = build_prompt_policy(
+        ConversationMode.DEEP_SUPPORT,
+        SupportProtocol.DEPRESSIVE_SUPPORT,
+        locale="ru",
+    )
+
+    assert "навредить себе" in policy
+    assert "не жить" in policy
+    assert "Я не могу ставить диагноз" in policy

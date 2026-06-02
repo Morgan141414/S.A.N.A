@@ -175,6 +175,21 @@ blocked_reasons:
 
 Это хороший результат для safety architecture, но недостаточный результат для качества модели.
 
+После v1.7 prompt-contract tuning повторный smoke для `llama3.1:8b`:
+
+```text
+total: 3
+passed: 3
+failed: 0
+candidate_used_count: 3
+fallback_count: 0
+blocked_reasons: none
+```
+
+Решение: `accept_for_more_tests`.
+
+Это разрешает только расширенный synthetic/red-team этап.
+
 ## Запрещено
 
 - Подставлять реальные сообщения людей в smoke prompts.

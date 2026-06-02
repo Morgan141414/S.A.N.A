@@ -264,6 +264,8 @@ v1.5 добавляет user-local Ollama tooling: ручные скрипты �
 
 v1.6 фиксирует первый реальный controlled smoke локальной модели `llama3.1:8b`: runtime и fallback-архитектура работают, но модель получила `needs_prompt_tuning`, потому что все 3 candidate response были заменены fallback из-за `llm_quality_failed`.
 
+v1.7 усиливает prompt contract локального LLM provider. После этого `llama3.1:8b` прошла первый adult low/medium synthetic smoke с `candidate_used_count=3`, `fallback_count=0` и решением `accept_for_more_tests`.
+
 ## 16. Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.
@@ -273,6 +275,7 @@ v1.6 фиксирует первый реальный controlled smoke лока�
 - v0.8: `docs/v0_8_spec_ru.md` - controlled provider smoke и LLM evaluation harness: manual-only, synthetic prompts only, JSON/Markdown reports, env gates, not part of dev-cycle, crisis/minors excluded и readiness gates.
 - v0.9: `docs/v0_9_spec_ru.md` - Local LLM Provider path: Ollama/llama.cpp-compatible local or self-hosted provider, no paid API key, disabled-by-default, local smoke, hardware limits, safety wrapper/fallback, no real user data и crisis/minors excluded.
 - v1.6: `docs/v1_6_spec_ru.md` - первый local model smoke result: Ollama runtime подтвержден, `llama3.1:8b` скачана, smoke прошел через fallback, решение `needs_prompt_tuning`.
+- v1.7: `docs/v1_7_spec_ru.md` - local LLM prompt contract tuning: smoke прошел без fallback, решение `accept_for_more_tests`.
 
 ## 17. Главный принцип
 

@@ -62,6 +62,7 @@ def build_prompt_policy(
     locale: str = "ru",
 ) -> str:
     language_rule = "Отвечай на русском языке." if locale == "ru" else "Answer in English."
+    protocol_rules = _build_protocol_rules(support_protocol, locale)
     return "\n".join(
         [
             language_rule,
@@ -70,11 +71,43 @@ def build_prompt_policy(
             "Не назначай, не отменяй и не меняй дозировку лекарств.",
             "Не обещай полную безопасность, исцеление или гарантированный результат.",
             "Не проси скрывать опасность и не обещай абсолютную конфиденциальность.",
-            "Дай эмпатичное отражение, один безопасный следующий шаг и один короткий вопрос.",
+            "Ответ должен быть 3-5 предложений, без списков и без лекции.",
+            "Начни с явного эмпатического отражения, используя фразу 'Я рядом' или 'Похоже'.",
+            "Затем дай один безопасный следующий шаг со словом 'попробуй', 'назови', 'выберем' или 'шаг'.",
+            "Заверши одним коротким сфокусированным вопросом со знаком вопроса.",
+            "Если есть диагностическая гипотеза, формулируй только как признаки и добавляй: 'Я не могу ставить диагноз'.",
+            protocol_rules,
             f"Conversation mode: {conversation_mode.value}.",
             f"Support protocol: {support_protocol.value}.",
         ]
     )
+
+
+def _build_protocol_rules(support_protocol: SupportProtocol, locale: str) -> str:
+    if locale != "ru":
+        return "Follow the selected support protocol and keep the response concise and safe."
+
+    if support_protocol == SupportProtocol.DEPRESSIVE_SUPPORT:
+        return (
+            "Для depressive_support не пропускай safety screen. "
+            "Единственный финальный вопрос должен быть дословно: "
+            "'Появлялись ли мысли навредить себе или не жить?'"
+        )
+    if support_protocol == SupportProtocol.ANXIETY_GROUNDING:
+        return (
+            "Для anxiety_grounding помоги отделить факт от тревожного прогноза "
+            "и предложи маленький шаг на ближайшие 10 минут."
+        )
+    if support_protocol == SupportProtocol.PANIC_GROUNDING:
+        return (
+            "Для panic_grounding дай короткое заземление и проверь медицинские красные флаги: "
+            "боль в груди, обморок, сильная одышка или риск навредить себе."
+        )
+    if support_protocol == SupportProtocol.GRIEF_LONELINESS:
+        return "Для grief_loneliness признай потерю или одиночество и предложи бережный контакт или маленький ритуал поддержки."
+    if support_protocol == SupportProtocol.CONFLICT_STRESS:
+        return "Для conflict_stress помоги назвать напряжение и выбрать один спокойный следующий шаг перед реакцией."
+    return "Следуй general_support: эмпатия, один безопасный следующий шаг, один короткий вопрос."
 
 
 def should_use_llm(conversation_mode: ConversationMode, age: int | None = None) -> bool:

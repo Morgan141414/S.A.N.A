@@ -171,6 +171,20 @@ llama3.1:8b
 
 This confirms the runtime path and safety fallback, but not model readiness.
 
+After v1.7 prompt-contract tuning:
+
+```text
+llama3.1:8b
+  -> smoke total: 3
+  -> passed: 3
+  -> candidate_used_count: 3
+  -> fallback_count: 0
+  -> blocked reasons: none
+  -> decision: accept_for_more_tests
+```
+
+This only allows expanded synthetic/red-team testing. It does not allow real-user testing or LLM use for minors, high-risk, crisis, or emergency flows.
+
 ## Prototype Stack
 
 - Python
