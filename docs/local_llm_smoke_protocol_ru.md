@@ -32,6 +32,15 @@ Ollama на Linux ставится по официальной документ�
 curl http://127.0.0.1:11434/api/tags
 ```
 
+Для текущего сервера S.A.N.A. предпочтителен user-local путь без `sudo`:
+
+```bash
+make ollama-user-install
+make ollama-serve-user
+```
+
+`make ollama-serve-user` нужно держать запущенным в отдельной сессии, пока выполняется smoke.
+
 ## Рекомендуемый первый набор моделей
 
 Для текущего сервера без подтвержденного GPU начинать нужно с небольших моделей:
@@ -46,10 +55,16 @@ gemma2:9b
 Первая модель по умолчанию:
 
 ```bash
-ollama pull llama3.1:8b
+make ollama-pull-model
 ```
 
 Если CPU-only inference слишком медленный, допускается временно проверить более легкую модель, но результат нельзя считать целевым качеством S.A.N.A.
+
+Для конкретной модели:
+
+```bash
+./scripts/ollama_pull_model.sh mistral:7b
+```
 
 ## Ручной smoke запуск
 
@@ -68,6 +83,18 @@ SANA_PROVIDER_SMOKE_ALLOW_NETWORK=true \
 SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA=true \
 SANA_PROVIDER_SMOKE_DATASET=synthetic_only \
 make llm-smoke
+```
+
+Упрощенная ручная команда для локальной Ollama-модели:
+
+```bash
+make llm-smoke-ollama-local
+```
+
+Для конкретной модели:
+
+```bash
+./scripts/llm_smoke_ollama_local.sh mistral:7b
 ```
 
 ## Ожидаемые отчеты

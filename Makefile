@@ -1,4 +1,4 @@
-.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke quality-report test lint
+.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke llm-smoke-ollama-local ollama-pull-model ollama-serve-user ollama-user-install quality-report test lint
 
 check:
 	./scripts/check.sh
@@ -20,6 +20,18 @@ evaluate-readiness:
 
 llm-smoke:
 	./scripts/llm_smoke.sh
+
+llm-smoke-ollama-local:
+	./scripts/llm_smoke_ollama_local.sh
+
+ollama-user-install:
+	./scripts/ollama_user_install.sh
+
+ollama-serve-user:
+	./scripts/ollama_user_serve.sh
+
+ollama-pull-model:
+	./scripts/ollama_pull_model.sh
 
 test:
 	cd backend && python -m pytest

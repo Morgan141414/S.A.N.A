@@ -260,6 +260,8 @@ v1.3 добавляет сводку в LLM smoke report: количество �
 
 v1.4 фиксирует протокол первого controlled local model smoke и матрицу сравнения локальных моделей до любых real-user tests.
 
+v1.5 добавляет user-local Ollama tooling: ручные скрипты установки, запуска, загрузки модели и gated smoke без `sudo` и без включения в `dev-cycle`.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.

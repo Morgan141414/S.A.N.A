@@ -50,6 +50,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [Local model comparison matrix](docs/local_model_comparison_matrix_ru.md)
 - [v1.4 controlled local model smoke preparation](docs/v1_4_spec_ru.md)
 - [v1.4 release readiness](docs/release_v1_4_ru.md)
+- [v1.5 user-local Ollama runtime tooling](docs/v1_5_spec_ru.md)
+- [v1.5 release readiness](docs/release_v1_5_ru.md)
 
 ## First Milestone
 
@@ -96,4 +98,13 @@ Generate an evaluation report:
 
 ```bash
 make evaluate-report
+```
+
+Manual local Ollama smoke tools:
+
+```bash
+make ollama-user-install
+make ollama-serve-user
+make ollama-pull-model
+make llm-smoke-ollama-local
 ```

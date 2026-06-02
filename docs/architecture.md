@@ -145,6 +145,17 @@ local runtime setup
 
 No model moves to expanded synthetic/red-team tests until the comparison matrix records an explicit reviewer decision.
 
+The current runtime tooling prefers user-local Ollama over system service installation:
+
+```text
+scripts/ollama_user_install.sh
+scripts/ollama_user_serve.sh
+scripts/ollama_pull_model.sh
+scripts/llm_smoke_ollama_local.sh
+```
+
+These scripts are manual tools and are not part of `make dev-cycle`.
+
 ## Prototype Stack
 
 - Python

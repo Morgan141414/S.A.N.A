@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MODEL="${1:-${SANA_LLM_MODEL:-llama3.1:8b}}"
+SAFE_MODEL_NAME="$(printf '%s' "$MODEL" | tr '/:' '__')"
+REPORT_PATH="${2:-$ROOT_DIR/evaluation_reports/ollama_${SAFE_MODEL_NAME}_smoke.json}"
+MARKDOWN_REPORT_PATH="${3:-$ROOT_DIR/evaluation_reports/ollama_${SAFE_MODEL_NAME}_smoke.md}"
+
+export SANA_LLM_ENABLED="${SANA_LLM_ENABLED:-true}"
+export SANA_LLM_PROVIDER="${SANA_LLM_PROVIDER:-ollama}"
+export SANA_LLM_MODEL="$MODEL"
+export SANA_OLLAMA_BASE_URL="${SANA_OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
+export SANA_LLM_TIMEOUT_SECONDS="${SANA_LLM_TIMEOUT_SECONDS:-30}"
+export SANA_LLM_MAX_OUTPUT_CHARS="${SANA_LLM_MAX_OUTPUT_CHARS:-1200}"
+export SANA_OLLAMA_NUM_PREDICT="${SANA_OLLAMA_NUM_PREDICT:-384}"
+export SANA_PROVIDER_SMOKE_ENABLED="${SANA_PROVIDER_SMOKE_ENABLED:-true}"
+export SANA_PROVIDER_SMOKE_ALLOW_NETWORK="${SANA_PROVIDER_SMOKE_ALLOW_NETWORK:-true}"
+export SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA="${SANA_PROVIDER_SMOKE_ACK_NO_USER_DATA:-true}"
+export SANA_PROVIDER_SMOKE_DATASET="${SANA_PROVIDER_SMOKE_DATASET:-synthetic_only}"
+
+echo "Running gated local Ollama smoke"
+echo "Model: $MODEL"
+echo "Report: $REPORT_PATH"
+echo "Markdown: $MARKDOWN_REPORT_PATH"
+"$ROOT_DIR/scripts/llm_smoke.sh" "$REPORT_PATH" "$MARKDOWN_REPORT_PATH"
