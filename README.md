@@ -52,6 +52,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.4 release readiness](docs/release_v1_4_ru.md)
 - [v1.5 user-local Ollama runtime tooling](docs/v1_5_spec_ru.md)
 - [v1.5 release readiness](docs/release_v1_5_ru.md)
+- [v1.6 first local model smoke result](docs/v1_6_spec_ru.md)
+- [v1.6 release readiness](docs/release_v1_6_ru.md)
 
 ## First Milestone
 
@@ -108,3 +110,11 @@ make ollama-serve-user
 make ollama-pull-model
 make llm-smoke-ollama-local
 ```
+
+Current local model status:
+
+```text
+llama3.1:8b -> needs_prompt_tuning
+```
+
+The first gated smoke passed through fallback only, so the runtime is usable for engineering tests, but the model is not accepted for real-user testing.

@@ -17,8 +17,13 @@ case "$(uname -m)" in
     ;;
 esac
 
-DOWNLOAD_URL="https://ollama.com/download/ollama-linux-${ARCH}.tgz${VERSION_PARAM}"
+DOWNLOAD_URL="https://ollama.com/download/ollama-linux-${ARCH}.tar.zst${VERSION_PARAM}"
 TMP_DIR="$(mktemp -d)"
+
+if ! command -v unzstd >/dev/null 2>&1; then
+  echo "Install failed: unzstd is required to extract Ollama .tar.zst package." >&2
+  exit 1
+fi
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -29,8 +34,8 @@ mkdir -p "$INSTALL_DIR"
 
 echo "Installing Ollama user-local runtime to: $INSTALL_DIR"
 echo "Download URL: $DOWNLOAD_URL"
-curl --fail --show-error --location "$DOWNLOAD_URL" -o "$TMP_DIR/ollama.tgz"
-tar -xzf "$TMP_DIR/ollama.tgz" -C "$INSTALL_DIR"
+curl --fail --show-error --location "$DOWNLOAD_URL" -o "$TMP_DIR/ollama.tar.zst"
+tar --use-compress-program=unzstd -xf "$TMP_DIR/ollama.tar.zst" -C "$INSTALL_DIR"
 
 if [ ! -x "$INSTALL_DIR/bin/ollama" ]; then
   echo "Install failed: $INSTALL_DIR/bin/ollama was not created." >&2

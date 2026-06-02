@@ -22,3 +22,4 @@ build/
 quality_report.md
 evaluation_reports/*.json
 evaluation_reports/*.md
+runtime_logs/

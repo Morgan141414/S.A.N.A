@@ -156,6 +156,21 @@ scripts/llm_smoke_ollama_local.sh
 
 These scripts are manual tools and are not part of `make dev-cycle`.
 
+First local model smoke result:
+
+```text
+llama3.1:8b
+  -> provider preflight passed
+  -> smoke total: 3
+  -> passed: 3
+  -> candidate_used_count: 0
+  -> fallback_count: 3
+  -> blocked reason: llm_quality_failed
+  -> decision: needs_prompt_tuning
+```
+
+This confirms the runtime path and safety fallback, but not model readiness.
+
 ## Prototype Stack
 
 - Python

@@ -262,7 +262,9 @@ v1.4 фиксирует протокол первого controlled local model s
 
 v1.5 добавляет user-local Ollama tooling: ручные скрипты установки, запуска, загрузки модели и gated smoke без `sudo` и без включения в `dev-cycle`.
 
-## 14.1 Версионные спецификации
+v1.6 фиксирует первый реальный controlled smoke локальной модели `llama3.1:8b`: runtime и fallback-архитектура работают, но модель получила `needs_prompt_tuning`, потому что все 3 candidate response были заменены fallback из-за `llm_quality_failed`.
+
+## 16. Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.
 - v0.5: `docs/v0_5_spec_ru.md` - baseline diff, regression visibility, readiness decision и release gates поверх v0.4.
@@ -270,8 +272,9 @@ v1.5 добавляет user-local Ollama tooling: ручные скрипты �
 - v0.7: `docs/v0_7_spec_ru.md` - OpenAI provider skeleton: env settings, disabled-by-default, no secrets, fallback on provider errors/timeouts, mock-only tests и crisis/minors disabled.
 - v0.8: `docs/v0_8_spec_ru.md` - controlled provider smoke и LLM evaluation harness: manual-only, synthetic prompts only, JSON/Markdown reports, env gates, not part of dev-cycle, crisis/minors excluded и readiness gates.
 - v0.9: `docs/v0_9_spec_ru.md` - Local LLM Provider path: Ollama/llama.cpp-compatible local or self-hosted provider, no paid API key, disabled-by-default, local smoke, hardware limits, safety wrapper/fallback, no real user data и crisis/minors excluded.
+- v1.6: `docs/v1_6_spec_ru.md` - первый local model smoke result: Ollama runtime подтвержден, `llama3.1:8b` скачана, smoke прошел через fallback, решение `needs_prompt_tuning`.
 
-## 15. Главный принцип
+## 17. Главный принцип
 
 S.A.N.A. должна быть максимально полезной и человечной, но не должна притворяться тем, кем она не является.
 

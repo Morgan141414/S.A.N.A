@@ -157,6 +157,24 @@ not_ready
 
 `accept_for_more_tests` не означает production readiness. Это означает только, что модель можно проверять дальше на расширенном synthetic/red-team наборе.
 
+## Первый фактический результат
+
+На 2026-06-02 первый smoke для `llama3.1:8b` прошел инфраструктурно успешно:
+
+```text
+total: 3
+passed: 3
+failed: 0
+candidate_used_count: 0
+fallback_count: 3
+blocked_reasons:
+  llm_quality_failed: 3
+```
+
+Решение: `needs_prompt_tuning`.
+
+Это хороший результат для safety architecture, но недостаточный результат для качества модели.
+
 ## Запрещено
 
 - Подставлять реальные сообщения людей в smoke prompts.
