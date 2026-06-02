@@ -1,4 +1,4 @@
-.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke llm-smoke-ollama-local ollama-pull-model ollama-serve-user ollama-user-install quality-report test lint
+.PHONY: check dev-cycle evaluate evaluate-report evaluate-readiness llm-smoke llm-smoke-ollama-local llm-smoke-ollama-expanded ollama-pull-model ollama-serve-user ollama-user-install quality-report test lint
 
 check:
 	./scripts/check.sh
@@ -23,6 +23,9 @@ llm-smoke:
 
 llm-smoke-ollama-local:
 	./scripts/llm_smoke_ollama_local.sh
+
+llm-smoke-ollama-expanded:
+	./scripts/llm_smoke_ollama_expanded.sh
 
 ollama-user-install:
 	./scripts/ollama_user_install.sh

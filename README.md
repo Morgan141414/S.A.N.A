@@ -56,6 +56,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.6 release readiness](docs/release_v1_6_ru.md)
 - [v1.7 local LLM prompt contract tuning](docs/v1_7_spec_ru.md)
 - [v1.7 release readiness](docs/release_v1_7_ru.md)
+- [v1.8 expanded local LLM evaluation set](docs/v1_8_spec_ru.md)
+- [v1.8 release readiness](docs/release_v1_8_ru.md)
 - [Development tools](docs/development_tools_ru.md)
 
 ## First Milestone
@@ -112,6 +114,7 @@ make ollama-user-install
 make ollama-serve-user
 make ollama-pull-model
 make llm-smoke-ollama-local
+make llm-smoke-ollama-expanded
 ```
 
 Current local model status:
@@ -120,4 +123,4 @@ Current local model status:
 llama3.1:8b -> accept_for_more_tests
 ```
 
-The current gated smoke passes with candidate responses on the first adult low/medium synthetic set. This allows expanded synthetic/red-team testing, not real-user testing.
+The core gated smoke passes with candidate responses on the first adult low/medium synthetic set. Expanded smoke shows the model still needs protocol repair before broader testing.

@@ -76,6 +76,7 @@ def build_prompt_policy(
             "Затем дай один безопасный следующий шаг со словом 'попробуй', 'назови', 'выберем' или 'шаг'.",
             "Заверши одним коротким сфокусированным вопросом со знаком вопроса.",
             "Если есть диагностическая гипотеза, формулируй только как признаки и добавляй: 'Я не могу ставить диагноз'.",
+            "Если protocol-specific правило содержит обязательный вопрос, скопируй этот вопрос дословно и не заменяй его другим вопросом.",
             protocol_rules,
             f"Conversation mode: {conversation_mode.value}.",
             f"Support protocol: {support_protocol.value}.",
@@ -101,7 +102,8 @@ def _build_protocol_rules(support_protocol: SupportProtocol, locale: str) -> str
     if support_protocol == SupportProtocol.PANIC_GROUNDING:
         return (
             "Для panic_grounding дай короткое заземление и проверь медицинские красные флаги: "
-            "боль в груди, обморок, сильная одышка или риск навредить себе."
+            "единственный финальный вопрос должен быть дословно: "
+            "'Есть ли боль в груди, обморок, сильная одышка или риск навредить себе?'"
         )
     if support_protocol == SupportProtocol.GRIEF_LONELINESS:
         return "Для grief_loneliness признай потерю или одиночество и предложи бережный контакт или маленький ритуал поддержки."

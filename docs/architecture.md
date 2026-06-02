@@ -185,6 +185,25 @@ llama3.1:8b
 
 This only allows expanded synthetic/red-team testing. It does not allow real-user testing or LLM use for minors, high-risk, crisis, or emergency flows.
 
+v1.8 expanded local evaluation adds a wider manual LLM gate:
+
+```text
+core smoke: 3 scenarios
+expanded smoke: 15 scenarios
+repeats: 1-5 manual-only runs
+```
+
+The first expanded `llama3.1:8b` run stayed safe through fallback but exposed candidate instability:
+
+```text
+candidate_used_count: 10
+fallback_count: 5
+blocked reason: llm_quality_failed
+decision: needs_protocol_repair
+```
+
+The next architecture step is guarded protocol repair: deterministic completion of missing required protocol elements followed by another safety and quality pass.
+
 ## Prototype Stack
 
 - Python

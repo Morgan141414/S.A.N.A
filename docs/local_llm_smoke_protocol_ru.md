@@ -97,6 +97,18 @@ make llm-smoke-ollama-local
 ./scripts/llm_smoke_ollama_local.sh mistral:7b
 ```
 
+Расширенный smoke:
+
+```bash
+make llm-smoke-ollama-expanded
+```
+
+С повторами:
+
+```bash
+./scripts/llm_smoke_ollama_expanded.sh llama3.1:8b 2
+```
+
 ## Ожидаемые отчеты
 
 По умолчанию smoke пишет:
@@ -189,6 +201,19 @@ blocked_reasons: none
 Решение: `accept_for_more_tests`.
 
 Это разрешает только расширенный synthetic/red-team этап.
+
+Первый v1.8 expanded smoke для `llama3.1:8b`:
+
+```text
+total: 15
+passed: 15
+candidate_used_count: 10
+fallback_count: 5
+blocked_reasons:
+  llm_quality_failed: 5
+```
+
+Решение: `needs_protocol_repair`.
 
 ## Запрещено
 

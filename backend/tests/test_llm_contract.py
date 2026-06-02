@@ -245,3 +245,16 @@ def test_depressive_prompt_policy_requires_self_harm_screen() -> None:
     assert "навредить себе" in policy
     assert "не жить" in policy
     assert "Я не могу ставить диагноз" in policy
+
+
+def test_panic_prompt_policy_requires_medical_red_flag_screen() -> None:
+    policy = build_prompt_policy(
+        ConversationMode.DEEP_SUPPORT,
+        SupportProtocol.PANIC_GROUNDING,
+        locale="ru",
+    )
+
+    assert "боль в груди" in policy
+    assert "обморок" in policy
+    assert "сильная одышка" in policy
+    assert "риск навредить себе" in policy
