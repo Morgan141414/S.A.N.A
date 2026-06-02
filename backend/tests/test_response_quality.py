@@ -60,3 +60,18 @@ def test_quality_checker_rejects_long_crisis_response() -> None:
 
     assert not quality.passed
     assert "crisis_response_too_long" in quality.issues
+
+
+def test_quality_checker_rejects_language_artifacts() -> None:
+    quality = check_response_quality(
+        response=(
+            "Я рядом. Похоже, тебе сейчас трудно. Попробуй назвать один маленький шаг. "
+            "Что можно сделать differently?"
+        ),
+        risk_level=RiskLevel.LOW,
+        conversation_mode=ConversationMode.SUPPORT,
+        support_protocol=SupportProtocol.GENERAL_SUPPORT,
+    )
+
+    assert not quality.passed
+    assert "language_artifact" in quality.issues

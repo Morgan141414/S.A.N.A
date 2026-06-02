@@ -63,6 +63,17 @@ coverage_by_support_protocol
 coverage_by_tag
 ```
 
+Для v2.0 readiness дополнительно:
+
+```text
+protocol_summary
+language_artifact failures
+candidate_used_count
+fallback_count
+repair_count
+per-protocol candidate/fallback/repair ratio
+```
+
 ## P0 для v0.4
 
 - Evaluation fixture содержит минимум 40 P0 сценариев.

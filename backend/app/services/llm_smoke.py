@@ -43,6 +43,14 @@ class SmokeScenarioResult(BaseModel):
     final_response: str
 
 
+class SmokeProtocolSummary(BaseModel):
+    total: int = 0
+    passed: int = 0
+    candidate_used: int = 0
+    fallback: int = 0
+    repair: int = 0
+
+
 class SmokeReport(BaseModel):
     total: int
     passed: int
@@ -56,6 +64,7 @@ class SmokeReport(BaseModel):
     fallback_count: int = 0
     repair_count: int = 0
     blocked_reasons: dict[str, int] = Field(default_factory=dict)
+    protocol_summary: dict[str, SmokeProtocolSummary] = Field(default_factory=dict)
     results: list[SmokeScenarioResult]
 
 
@@ -218,6 +227,7 @@ def run_smoke(
     ]
     passed = sum(1 for result in results if result.passed)
     blocked_reasons = _count_blocked_reasons(results)
+    protocol_summary = _build_protocol_summary(results)
     return SmokeReport(
         total=len(results),
         passed=passed,
@@ -230,6 +240,7 @@ def run_smoke(
         fallback_count=sum(1 for result in results if result.fallback_used),
         repair_count=sum(1 for result in results if result.repair_used),
         blocked_reasons=blocked_reasons,
+        protocol_summary=protocol_summary,
         results=results,
     )
 
@@ -300,6 +311,18 @@ def write_smoke_markdown_report(report: SmokeReport, output_path: Path) -> None:
             lines.append(f"- `{reason}`: {count}")
     else:
         lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## Protocol Summary",
+            "",
+        ]
+    )
+    for protocol, summary in sorted(report.protocol_summary.items()):
+        lines.append(
+            f"- `{protocol}`: total={summary.total}; passed={summary.passed}; "
+            f"candidate={summary.candidate_used}; fallback={summary.fallback}; repair={summary.repair}"
+        )
     lines.extend(
         [
             "",
@@ -397,6 +420,23 @@ def _count_blocked_reasons(results: list[SmokeScenarioResult]) -> dict[str, int]
             continue
         counts[result.blocked_reason] = counts.get(result.blocked_reason, 0) + 1
     return counts
+
+
+def _build_protocol_summary(results: list[SmokeScenarioResult]) -> dict[str, SmokeProtocolSummary]:
+    summaries: dict[str, SmokeProtocolSummary] = {}
+    for result in results:
+        protocol = result.support_protocol.value
+        summary = summaries.setdefault(protocol, SmokeProtocolSummary())
+        summary.total += 1
+        if result.passed:
+            summary.passed += 1
+        if result.candidate_used:
+            summary.candidate_used += 1
+        if result.fallback_used:
+            summary.fallback += 1
+        if result.repair_used:
+            summary.repair += 1
+    return summaries
 
 
 def _with_repeat_id(result: SmokeScenarioResult, repeat_index: int) -> SmokeScenarioResult:

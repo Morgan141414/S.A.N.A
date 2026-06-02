@@ -32,6 +32,13 @@ NEXT_STEP_MARKERS = (
 
 QUESTION_MARKERS = ("?",)
 
+LANGUAGE_ARTIFACT_MARKERS = (
+    " judged",
+    " feel ",
+    " presente",
+    " differently",
+)
+
 
 def check_response_quality(
     response: str,
@@ -51,6 +58,9 @@ def check_response_quality(
     if not any(marker in response for marker in QUESTION_MARKERS):
         issues.append("missing_focused_question")
 
+    if any(marker in normalized for marker in LANGUAGE_ARTIFACT_MARKERS):
+        issues.append("language_artifact")
+
     if conversation_mode in {ConversationMode.CRISIS, ConversationMode.EMERGENCY}:
         word_count = len(response.split())
         if word_count > 90:
@@ -68,4 +78,3 @@ def check_response_quality(
             issues.append("missing_panic_medical_red_flag_check")
 
     return ResponseQualityCheck(passed=not issues, issues=issues)
-

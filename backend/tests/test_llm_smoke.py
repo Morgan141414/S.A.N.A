@@ -181,6 +181,8 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     assert report.fallback_count == 0
     assert report.repair_count == 1
     assert report.blocked_reasons == {}
+    assert report.protocol_summary["general_support"].total == 1
+    assert report.protocol_summary["depressive_support"].repair == 1
     assert all(result.provider_used for result in report.results)
     assert all(result.final_response for result in report.results)
 
@@ -197,6 +199,8 @@ def test_run_smoke_uses_provider_and_writes_reports(tmp_path: Path) -> None:
     assert "Fallback used: 0" in markdown
     assert "Repair used: 1" in markdown
     assert "- none" in markdown
+    assert "## Protocol Summary" in markdown
+    assert "`depressive_support`" in markdown
 
 
 def test_run_expanded_smoke_supports_repeats_and_summary(tmp_path: Path) -> None:
@@ -211,6 +215,7 @@ def test_run_expanded_smoke_supports_repeats_and_summary(tmp_path: Path) -> None
     assert report.candidate_used_count == report.total
     assert report.fallback_count == 0
     assert report.repair_count == 0
+    assert report.protocol_summary["panic_grounding"].candidate_used == 4
     assert any("#repeat_2" in result.id for result in report.results)
 
     markdown_path = tmp_path / "expanded.md"

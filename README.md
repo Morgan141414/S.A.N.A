@@ -60,6 +60,8 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.8 release readiness](docs/release_v1_8_ru.md)
 - [v1.9 guarded protocol repair](docs/v1_9_spec_ru.md)
 - [v1.9 release readiness](docs/release_v1_9_ru.md)
+- [v2.0 readiness track](docs/v2_0_readiness_spec_ru.md)
+- [v2.0 readiness release notes](docs/release_v2_0_readiness_ru.md)
 - [Development tools](docs/development_tools_ru.md)
 
 ## First Milestone

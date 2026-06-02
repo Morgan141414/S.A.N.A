@@ -49,3 +49,18 @@ tags
 - отдельная политика хранения и удаления;
 - запрет использовать кризисные диалоги для обучения без отдельного review.
 
+## Когда начинать обучение модели
+
+Fine-tuning или deep learning нельзя начинать только потому, что локальная модель уже отвечает.
+
+Минимальные условия:
+
+- synthetic/red-team dataset минимум 200 сценариев;
+- labels для risk level, conversation mode и support protocol;
+- per-protocol quality metrics;
+- отдельная политика consent/anonymization для любых real-user data;
+- clinician/expert review queue;
+- baseline comparison минимум 2-3 локальных моделей;
+- повторяемый evaluation report до и после обучения.
+
+До выполнения этих условий обучение считается преждевременным.
