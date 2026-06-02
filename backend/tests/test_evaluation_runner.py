@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pytest
 from pydantic import ValidationError
@@ -17,6 +18,8 @@ from app.services.evaluation import (
     load_evaluation_report,
     load_scenarios,
     write_evaluation_report,
+    write_expert_review_markdown,
+    write_expert_review_queue,
     write_markdown_report,
     write_readiness_decision,
     write_regression_diff,
@@ -325,6 +328,27 @@ def test_expert_review_queue_blocks_failed_results_from_training() -> None:
     assert len(queue) == 1
     assert queue[0].training_eligibility == TrainingEligibility.BLOCKED_FAILED_EVALUATION
     assert "evaluation_failed" in queue[0].review_reasons
+
+
+def test_expert_review_queue_reports_can_be_written(tmp_path: Path) -> None:
+    scenarios = load_scenarios(FIXTURE_PATH)
+    summary = evaluate_scenarios(scenarios)
+    queue = build_expert_review_queue(scenarios=scenarios, summary=summary)
+    json_path = tmp_path / "expert_review_queue.json"
+    markdown_path = tmp_path / "expert_review_queue.md"
+
+    write_expert_review_queue(queue, json_path)
+    write_expert_review_markdown(queue, markdown_path)
+
+    raw_items = json.loads(json_path.read_text(encoding="utf-8"))
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert raw_items
+    assert raw_items[0]["reviewer_decision"] == "pending"
+    assert any(item["training_eligibility"] == "blocked_safety_critical" for item in raw_items)
+    assert "# S.A.N.A. Expert Review Queue" in markdown
+    assert "Training eligibility" in markdown
+    assert "safety_critical_risk" in markdown
 
 
 def test_safety_critical_cases_require_review() -> None:

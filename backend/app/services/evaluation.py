@@ -428,6 +428,52 @@ def write_readiness_decision(decision: ReadinessDecision, output_path: Path) -> 
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_expert_review_queue(queue: list[ExpertReviewQueueItem], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_items = [item.model_dump(mode="json") for item in queue]
+    output_path.write_text(
+        json.dumps(raw_items, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def write_expert_review_markdown(queue: list[ExpertReviewQueueItem], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# S.A.N.A. Expert Review Queue",
+        "",
+        f"- Total: {len(queue)}",
+        "",
+        "## Items",
+        "",
+    ]
+    if not queue:
+        lines.append("No items require expert review.")
+    else:
+        for item in queue:
+            lines.extend(
+                [
+                    f"### `{item.scenario_id}`",
+                    "",
+                    f"- Priority: `{item.priority.value}`",
+                    f"- Source type: `{item.source_type.value}`",
+                    f"- Case family: `{item.case_family}`",
+                    f"- Risk level: `{item.risk_level.value}`",
+                    f"- Conversation mode: `{item.conversation_mode.value}`",
+                    f"- Support protocol: `{item.support_protocol.value}`",
+                    f"- Passed: {str(item.passed).lower()}",
+                    f"- Review reasons: `{', '.join(item.review_reasons)}`",
+                    f"- Reviewer decision: `{item.reviewer_decision.value}`",
+                    f"- Training eligibility: `{item.training_eligibility.value}`",
+                    "",
+                ]
+            )
+            if item.issues:
+                lines.extend(["Issues:", "", *[f"- `{issue}`" for issue in item.issues], ""])
+
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_markdown_report(summary: EvaluationSummary, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -630,6 +676,12 @@ def _format_protocol_summary(counter: dict[str, ProtocolEvaluationSummary]) -> l
     ]
 
 
+def _optional_cli_path(index: int) -> Path | None:
+    if len(sys.argv) <= index or not sys.argv[index]:
+        return None
+    return Path(sys.argv[index])
+
+
 def main() -> int:
     default_path = (
         Path(__file__).resolve().parents[2]
@@ -637,17 +689,26 @@ def main() -> int:
         / "fixtures"
         / "v0_3_eval_scenarios.json"
     )
-    scenario_path = Path(sys.argv[1]) if len(sys.argv) > 1 else default_path
-    output_path = Path(sys.argv[2]) if len(sys.argv) > 2 else None
-    markdown_output_path = Path(sys.argv[3]) if len(sys.argv) > 3 else None
-    baseline_path = Path(sys.argv[4]) if len(sys.argv) > 4 else None
-    regression_diff_path = Path(sys.argv[5]) if len(sys.argv) > 5 else None
-    readiness_path = Path(sys.argv[6]) if len(sys.argv) > 6 else None
-    summary = evaluate_scenarios(load_scenarios(scenario_path))
+    scenario_path = _optional_cli_path(1) or default_path
+    output_path = _optional_cli_path(2)
+    markdown_output_path = _optional_cli_path(3)
+    baseline_path = _optional_cli_path(4)
+    regression_diff_path = _optional_cli_path(5)
+    readiness_path = _optional_cli_path(6)
+    review_queue_path = _optional_cli_path(7)
+    review_markdown_path = _optional_cli_path(8)
+    scenarios = load_scenarios(scenario_path)
+    summary = evaluate_scenarios(scenarios)
     if output_path is not None:
         write_evaluation_report(summary, output_path)
     if markdown_output_path is not None:
         write_markdown_report(summary, markdown_output_path)
+    if review_queue_path is not None or review_markdown_path is not None:
+        review_queue = build_expert_review_queue(scenarios=scenarios, summary=summary)
+        if review_queue_path is not None:
+            write_expert_review_queue(review_queue, review_queue_path)
+        if review_markdown_path is not None:
+            write_expert_review_markdown(review_queue, review_markdown_path)
     regression_diff = None
     if baseline_path is not None:
         regression_diff = build_regression_diff(

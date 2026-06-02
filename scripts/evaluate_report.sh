@@ -8,6 +8,8 @@ MARKDOWN_REPORT_PATH="${3:-$ROOT_DIR/evaluation_reports/v0_5_latest.md}"
 BASELINE_PATH="${4:-}"
 REGRESSION_DIFF_PATH="${5:-$ROOT_DIR/evaluation_reports/v0_5_regression_diff.json}"
 READINESS_PATH="${6:-$ROOT_DIR/evaluation_reports/v0_5_readiness.md}"
+REVIEW_QUEUE_PATH="${7:-$ROOT_DIR/evaluation_reports/v0_5_expert_review_queue.json}"
+REVIEW_MARKDOWN_PATH="${8:-$ROOT_DIR/evaluation_reports/v0_5_expert_review_queue.md}"
 
 if [ -n "$BASELINE_PATH" ]; then
   "$ROOT_DIR/scripts/evaluate.sh" \
@@ -16,11 +18,23 @@ if [ -n "$BASELINE_PATH" ]; then
     "$MARKDOWN_REPORT_PATH" \
     "$BASELINE_PATH" \
     "$REGRESSION_DIFF_PATH" \
-    "$READINESS_PATH" >/tmp/sana-evaluate-report.log
+    "$READINESS_PATH" \
+    "$REVIEW_QUEUE_PATH" \
+    "$REVIEW_MARKDOWN_PATH" >/tmp/sana-evaluate-report.log
   echo "Regression diff: $REGRESSION_DIFF_PATH"
   echo "Readiness decision: $READINESS_PATH"
 else
-  "$ROOT_DIR/scripts/evaluate.sh" "$SCENARIO_PATH" "$REPORT_PATH" "$MARKDOWN_REPORT_PATH" >/tmp/sana-evaluate-report.log
+  "$ROOT_DIR/scripts/evaluate.sh" \
+    "$SCENARIO_PATH" \
+    "$REPORT_PATH" \
+    "$MARKDOWN_REPORT_PATH" \
+    "" \
+    "" \
+    "" \
+    "$REVIEW_QUEUE_PATH" \
+    "$REVIEW_MARKDOWN_PATH" >/tmp/sana-evaluate-report.log
 fi
 echo "Evaluation report: $REPORT_PATH"
 echo "Markdown report: $MARKDOWN_REPORT_PATH"
+echo "Expert review queue: $REVIEW_QUEUE_PATH"
+echo "Expert review markdown: $REVIEW_MARKDOWN_PATH"

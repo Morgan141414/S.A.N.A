@@ -9,6 +9,8 @@ MARKDOWN_REPORT_PATH="${3:-}"
 BASELINE_PATH="${4:-}"
 REGRESSION_DIFF_PATH="${5:-}"
 READINESS_PATH="${6:-}"
+REVIEW_QUEUE_PATH="${7:-}"
+REVIEW_MARKDOWN_PATH="${8:-}"
 
 cd "$BACKEND_DIR"
 
@@ -35,9 +37,19 @@ if [ -n "$BASELINE_PATH" ] && [ -n "$REGRESSION_DIFF_PATH" ] && [ -n "$READINESS
     "$MARKDOWN_REPORT_PATH" \
     "$BASELINE_PATH" \
     "$REGRESSION_DIFF_PATH" \
-    "$READINESS_PATH"
+    "$READINESS_PATH" \
+    "$REVIEW_QUEUE_PATH" \
+    "$REVIEW_MARKDOWN_PATH"
 elif [ -n "$REPORT_PATH" ] && [ -n "$MARKDOWN_REPORT_PATH" ]; then
-  python -m app.services.evaluation "$SCENARIO_PATH" "$REPORT_PATH" "$MARKDOWN_REPORT_PATH"
+  python -m app.services.evaluation \
+    "$SCENARIO_PATH" \
+    "$REPORT_PATH" \
+    "$MARKDOWN_REPORT_PATH" \
+    "" \
+    "" \
+    "" \
+    "$REVIEW_QUEUE_PATH" \
+    "$REVIEW_MARKDOWN_PATH"
 elif [ -n "$REPORT_PATH" ]; then
   python -m app.services.evaluation "$SCENARIO_PATH" "$REPORT_PATH"
 else

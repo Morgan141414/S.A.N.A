@@ -87,6 +87,15 @@ eligible_after_approval
 
 Даже если пример прошел automated checks, он не должен попадать в training dataset без отдельного approval workflow.
 
+`make evaluate-report` и `make evaluate-readiness` должны сохранять:
+
+```text
+evaluation_reports/v0_5_expert_review_queue.json
+evaluation_reports/v0_5_expert_review_queue.md
+```
+
+JSON используется для будущей автоматизации review/dataset pipeline, Markdown - для ручной проверки.
+
 ## Будущие реальные данные
 
 Если в будущих версиях появятся реальные данные, нужны:

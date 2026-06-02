@@ -12,6 +12,7 @@
 - Добавлен `protocol_summary` в LLM smoke report.
 - Добавлен `protocol_summary` в основной evaluation report.
 - Добавлен кодовый контракт clinician/expert review queue.
+- Добавлены persisted expert review artifacts для `make evaluate-report` и `make evaluate-readiness`.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -23,4 +24,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset, добавить persisted review artifact и подготовить dataset schema для будущего tuning.
+Расширить synthetic/red-team dataset, добавить reviewer decision ingestion и подготовить dataset schema для будущего tuning.

@@ -10,7 +10,7 @@
 - `make check` - Ruff и pytest.
 - `make dev-cycle` - полный цикл разработки и quality report.
 - `make evaluate` - P0 synthetic/red-team evaluation gate.
-- `make evaluate-readiness` - readiness decision и regression diff.
+- `make evaluate-readiness` - readiness decision, regression diff и expert review artifacts.
 - `make llm-smoke-ollama-local` - gated local LLM smoke только на synthetic-only сценариях.
 - Ollama user-local runtime - локальные модели без покупки API key.
 
