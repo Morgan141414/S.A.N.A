@@ -131,6 +131,20 @@ blocked_reasons
 
 This lets reviewers compare local models by safety and usefulness before any real-user testing.
 
+The local model selection process is manual and staged:
+
+```text
+local runtime setup
+  -> model pull
+  -> provider preflight
+  -> gated synthetic smoke
+  -> smoke report summary
+  -> model comparison matrix
+  -> reviewer decision
+```
+
+No model moves to expanded synthetic/red-team tests until the comparison matrix records an explicit reviewer decision.
+
 ## Prototype Stack
 
 - Python

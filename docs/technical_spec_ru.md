@@ -258,6 +258,8 @@ v1.2 добавляет таксономию ошибок локального p
 
 v1.3 добавляет сводку в LLM smoke report: количество принятых LLM candidates, количество fallback и агрегированные `blocked_reasons`.
 
+v1.4 фиксирует протокол первого controlled local model smoke и матрицу сравнения локальных моделей до любых real-user tests.
+
 ## 14.1 Версионные спецификации
 
 - v0.4: `docs/v0_4_spec_ru.md` - quality evidence, расширенный P0 evaluation set, coverage summary и JSON/Markdown reports.

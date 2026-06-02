@@ -46,6 +46,10 @@ docs/           Product, clinical behavior, and architecture notes
 - [v1.2 release readiness](docs/release_v1_2_ru.md)
 - [v1.3 LLM smoke report summary](docs/v1_3_spec_ru.md)
 - [v1.3 release readiness](docs/release_v1_3_ru.md)
+- [Local LLM smoke protocol](docs/local_llm_smoke_protocol_ru.md)
+- [Local model comparison matrix](docs/local_model_comparison_matrix_ru.md)
+- [v1.4 controlled local model smoke preparation](docs/v1_4_spec_ru.md)
+- [v1.4 release readiness](docs/release_v1_4_ru.md)
 
 ## First Milestone
 

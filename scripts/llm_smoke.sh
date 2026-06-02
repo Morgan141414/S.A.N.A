@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
-REPORT_PATH="${1:-$ROOT_DIR/evaluation_reports/v0_8_provider_smoke.json}"
-MARKDOWN_REPORT_PATH="${2:-$ROOT_DIR/evaluation_reports/v0_8_provider_smoke.md}"
+REPORT_PATH="${1:-$ROOT_DIR/evaluation_reports/llm_smoke_latest.json}"
+MARKDOWN_REPORT_PATH="${2:-$ROOT_DIR/evaluation_reports/llm_smoke_latest.md}"
 
 cd "$BACKEND_DIR"
 
