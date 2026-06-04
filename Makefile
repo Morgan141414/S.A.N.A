@@ -16,7 +16,7 @@ evaluate-report:
 	./scripts/evaluate_report.sh
 
 evaluate-readiness:
-	./scripts/evaluate_readiness.sh
+	./scripts/evaluate_readiness.sh "$(SCENARIO)" "$(BASELINE)" "$(REPORT)" "$(MARKDOWN_REPORT)" "$(REGRESSION_DIFF)" "$(READINESS)" "$(REVIEW_QUEUE)" "$(REVIEW_MARKDOWN)" "$(REVIEW_DECISIONS)" "$(TRAINING_EXAMPLES)"
 
 training-dry-run:
 	./scripts/training_dry_run.sh "$(MANIFEST)" "$(DATASET)" "$(REPORT)" "$(MARKDOWN_REPORT)"

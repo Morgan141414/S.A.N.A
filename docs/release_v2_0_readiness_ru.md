@@ -21,6 +21,7 @@
 - Добавлен profiler evidence contract в training dry-run: отчет показывает, основан ли hardware блок на эвристике или на фактическом снимке окружения через `nvidia-smi`.
 - Добавлен dataset manifest в training dry-run: fingerprint датасета, deterministic split seed, train/validation ids и id fingerprints.
 - Усилена dataset safety validation: duplicate ids, `reviewer_decision != approved`, crisis/emergency/minor modes блокируют dry-run.
+- Добавлен строгий readiness profile `v2_training`: отдельный gate для deep learning, который блокирует обучение до `>=200` сценариев, baseline comparison, clinician-authored coverage и per-protocol coverage.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово

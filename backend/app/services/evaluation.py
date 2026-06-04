@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import os
 import re
 import sys
 
@@ -131,6 +132,11 @@ class ReadinessStatus(StrEnum):
     NOT_READY = "not_ready"
 
 
+class ReadinessProfile(StrEnum):
+    RELEASE = "release"
+    V2_TRAINING = "v2_training"
+
+
 class ReviewDecision(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
@@ -155,6 +161,9 @@ class ReadinessDecision(BaseModel):
     pass_rate: float
     baseline_compared: bool
     has_blocking_regressions: bool
+    profile: ReadinessProfile = ReadinessProfile.RELEASE
+    minimum_total_required: int = 40
+    minimum_per_protocol_required: int = 0
 
 
 class ExpertReviewQueueItem(BaseModel):
@@ -367,8 +376,11 @@ def build_regression_diff(
 def decide_readiness(
     summary: EvaluationSummary,
     regression_diff: RegressionDiff | None = None,
+    profile: ReadinessProfile = ReadinessProfile.RELEASE,
 ) -> ReadinessDecision:
     blocking_reasons: list[str] = []
+    minimum_total_required = 40
+    minimum_per_protocol_required = 0
     if summary.failed:
         blocking_reasons.append(f"evaluation_failed:{summary.failed}")
     if summary.coverage_by_priority.get(ScenarioPriority.P0.value, 0) < 40:
@@ -378,6 +390,28 @@ def decide_readiness(
             blocking_reasons.append(f"new_failures:{len(regression_diff.new_failures)}")
         if regression_diff.removed_scenarios:
             blocking_reasons.append(f"removed_scenarios:{len(regression_diff.removed_scenarios)}")
+
+    if profile == ReadinessProfile.V2_TRAINING:
+        minimum_total_required = 200
+        minimum_per_protocol_required = 3
+        if summary.total < minimum_total_required:
+            blocking_reasons.append(f"v2_total_below_200:{summary.total}")
+        if regression_diff is None:
+            blocking_reasons.append("v2_baseline_not_compared")
+        for source_type in (
+            ScenarioSourceType.SYNTHETIC,
+            ScenarioSourceType.RED_TEAM,
+            ScenarioSourceType.CLINICIAN_AUTHORED,
+        ):
+            if summary.coverage_by_source_type.get(source_type.value, 0) == 0:
+                blocking_reasons.append(f"v2_missing_source_type:{source_type.value}")
+        for protocol in SupportProtocol:
+            count = summary.coverage_by_support_protocol.get(protocol.value, 0)
+            if count < minimum_per_protocol_required:
+                blocking_reasons.append(
+                    f"v2_protocol_coverage_below_{minimum_per_protocol_required}:"
+                    f"{protocol.value}:{count}"
+                )
 
     return ReadinessDecision(
         status=ReadinessStatus.NOT_READY if blocking_reasons else ReadinessStatus.READY,
@@ -389,6 +423,9 @@ def decide_readiness(
         has_blocking_regressions=regression_diff.has_blocking_regressions
         if regression_diff is not None
         else False,
+        profile=profile,
+        minimum_total_required=minimum_total_required,
+        minimum_per_protocol_required=minimum_per_protocol_required,
     )
 
 
@@ -509,8 +546,11 @@ def write_readiness_decision(decision: ReadinessDecision, output_path: Path) -> 
     lines = [
         "# S.A.N.A. Readiness Decision",
         "",
+        f"- Profile: `{decision.profile.value}`",
         f"- Status: `{decision.status.value}`",
         f"- Total: {decision.total}",
+        f"- Minimum total required: {decision.minimum_total_required}",
+        f"- Minimum per-protocol required: {decision.minimum_per_protocol_required}",
         f"- Failed: {decision.failed}",
         f"- Pass rate: {decision.pass_rate}",
         f"- Baseline compared: {str(decision.baseline_compared).lower()}",
@@ -844,6 +884,17 @@ def _optional_cli_path(index: int) -> Path | None:
     return Path(sys.argv[index])
 
 
+def _readiness_profile_from_env() -> ReadinessProfile:
+    raw_value = os.getenv("SANA_READINESS_PROFILE", ReadinessProfile.RELEASE.value)
+    try:
+        return ReadinessProfile(raw_value)
+    except ValueError as exc:
+        allowed = ", ".join(profile.value for profile in ReadinessProfile)
+        raise ValueError(
+            f"invalid SANA_READINESS_PROFILE={raw_value!r}; expected {allowed}"
+        ) from exc
+
+
 def main() -> int:
     default_path = (
         Path(__file__).resolve().parents[2]
@@ -861,6 +912,7 @@ def main() -> int:
     review_markdown_path = _optional_cli_path(8)
     review_decisions_path = _optional_cli_path(9)
     training_examples_path = _optional_cli_path(10)
+    readiness_profile = _readiness_profile_from_env()
     scenarios = load_scenarios(scenario_path)
     summary = evaluate_scenarios(scenarios)
     if output_path is not None:
@@ -897,7 +949,11 @@ def main() -> int:
             write_regression_diff(regression_diff, regression_diff_path)
     if readiness_path is not None:
         write_readiness_decision(
-            decide_readiness(summary=summary, regression_diff=regression_diff),
+            decide_readiness(
+                summary=summary,
+                regression_diff=regression_diff,
+                profile=readiness_profile,
+            ),
             readiness_path,
         )
     print(summary.model_dump_json(indent=2))

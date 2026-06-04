@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from app.services.evaluation import (
     ExpertReviewDecisionInput,
     EvaluationScenario,
+    ReadinessProfile,
     ReadinessStatus,
     ReviewDecision,
     ScenarioPriority,
@@ -208,7 +209,40 @@ def test_identical_baseline_has_no_regressions() -> None:
     assert diff.removed_scenarios == []
     assert not diff.has_blocking_regressions
     assert decision.status == ReadinessStatus.READY
+    assert decision.profile == ReadinessProfile.RELEASE
     assert decision.blocking_reasons == []
+
+
+def test_v2_training_readiness_blocks_small_release_fixture() -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    diff = build_regression_diff(current=summary, baseline=summary)
+
+    decision = decide_readiness(
+        summary=summary,
+        regression_diff=diff,
+        profile=ReadinessProfile.V2_TRAINING,
+    )
+
+    assert decision.status == ReadinessStatus.NOT_READY
+    assert decision.profile == ReadinessProfile.V2_TRAINING
+    assert decision.minimum_total_required == 200
+    assert decision.minimum_per_protocol_required == 3
+    assert f"v2_total_below_200:{summary.total}" in decision.blocking_reasons
+    assert "v2_missing_source_type:clinician_authored" in decision.blocking_reasons
+    assert any(
+        reason.startswith("v2_protocol_coverage_below_3:")
+        for reason in decision.blocking_reasons
+    )
+
+
+def test_v2_training_readiness_requires_baseline_comparison() -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+
+    decision = decide_readiness(summary=summary, profile=ReadinessProfile.V2_TRAINING)
+
+    assert decision.status == ReadinessStatus.NOT_READY
+    assert not decision.baseline_compared
+    assert "v2_baseline_not_compared" in decision.blocking_reasons
 
 
 def test_new_failure_blocks_readiness() -> None:
@@ -291,6 +325,7 @@ def test_regression_and_readiness_reports_can_be_written(tmp_path: Path) -> None
     assert '"new_failures":[]' in diff_path.read_text(encoding="utf-8").replace(" ", "")
     readiness_text = readiness_path.read_text(encoding="utf-8")
     assert "S.A.N.A. Readiness Decision" in readiness_text
+    assert "Profile: `release`" in readiness_text
     assert "Status: `ready`" in readiness_text
     assert "No blocking reasons." in readiness_text
 

@@ -11,6 +11,7 @@
 - `make dev-cycle` - полный цикл разработки и quality report.
 - `make evaluate` - P0 synthetic/red-team evaluation gate.
 - `make evaluate-readiness` - readiness decision, regression diff и expert review artifacts.
+- `SANA_READINESS_PROFILE=v2_training make evaluate-readiness` - строгий deep-learning readiness gate, который должен блокировать обучение до закрытия v2.x условий.
 - `make training-dry-run` - dry-run будущего LoRA/QLoRA без изменения весов модели.
 - `SANA_TRAINING_COLLECT_PROFILER=true make training-dry-run` - тот же dry-run с попыткой собрать базовый profiler evidence через `nvidia-smi`.
 - `make llm-smoke-ollama-local` - gated local LLM smoke только на synthetic-only сценариях.

@@ -74,6 +74,14 @@ repair_count
 per-protocol candidate/fallback/repair ratio
 ```
 
+Для deep-learning readiness используется отдельный профиль:
+
+```bash
+SANA_READINESS_PROFILE=v2_training make evaluate-readiness
+```
+
+Этот профиль должен блокировать обучение, если evaluation set меньше 200 сценариев, нет baseline comparison, отсутствует clinician-authored coverage или per-protocol coverage ниже требуемого минимума.
+
 В основной evaluation pipeline `protocol_summary` должен показывать:
 
 ```text

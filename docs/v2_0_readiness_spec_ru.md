@@ -82,6 +82,14 @@ v2.0 не означает real-user testing и не означает клини
 11. Есть rollback plan после fine-tuning
 ```
 
+Проверка deep-learning readiness должна запускаться отдельным строгим профилем:
+
+```bash
+SANA_READINESS_PROFILE=v2_training make evaluate-readiness
+```
+
+Обычный `make evaluate-readiness` отвечает на вопрос "стабилен ли текущий release/evaluation layer?". Профиль `v2_training` отвечает на другой вопрос: "можно ли уже начинать обучение модели?". Для текущего этапа `v2_training` должен возвращать `not_ready`, пока не закрыты dataset scale, per-protocol coverage, clinician-authored coverage, baseline comparison и training artifacts.
+
 ## Ожидаемый момент fine-tuning
 
 Первый эксперимент LoRA/QLoRA можно планировать после v2.x readiness gates, когда:
