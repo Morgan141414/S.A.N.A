@@ -177,3 +177,25 @@ gradient_checkpointing = true
 ```
 
 Этот эксперимент должен быть synthetic/clinician-authored only и не должен включать real-user data.
+
+## Hardware sizing
+
+Подробная матрица железа зафиксирована в `docs/hardware_sizing_ru.md`.
+
+Практический минимум для серьезного первого fine-tuning:
+
+```text
+GPU VRAM: 24 GB
+RAM: 64 GB
+Disk: 1 TB NVMe
+```
+
+Комфортный research server:
+
+```text
+GPU VRAM: 48 GB+
+RAM: 128 GB
+Disk: 2 TB NVMe
+```
+
+Текущий RTX 3050 8GB остается полезным для разработки, inference smoke, evaluation и dry-run, но не является хорошей целью для полноценного deep learning.

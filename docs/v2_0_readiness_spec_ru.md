@@ -126,6 +126,8 @@ SANA_ROLLBACK_PLAN_PATH
 
 До этого обучение будет преждевременным: модель может выучить слабые или небезопасные паттерны, а мы не сможем доказать улучшение.
 
+Hardware sizing для будущего сервера описан в `docs/hardware_sizing_ru.md`. Для первого серьезного fine-tuning целевой минимум - 24GB VRAM, 64GB RAM и NVMe storage. Текущий RTX 3050 8GB остается development/evaluation сервером.
+
 ## Следующие задачи v2.0
 
 - расширить synthetic/red-team set;
