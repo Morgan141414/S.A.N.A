@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import json
 import math
 import re
@@ -6,10 +7,11 @@ import shutil
 import subprocess
 
 from enum import StrEnum
+from collections.abc import Iterable
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.services.evaluation import InstructionTrainingExample
+from app.services.evaluation import InstructionTrainingExample, ReviewDecision
 
 
 class TrainingMethod(StrEnum):
@@ -36,7 +38,9 @@ class TrainingHyperparameters(BaseModel):
 class TrainingAdapterConfig(BaseModel):
     adapter_rank: int = Field(default=16, ge=1, le=256)
     adapter_alpha: int = Field(default=32, ge=1, le=512)
-    target_modules: list[str] = Field(default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj"])
+    target_modules: list[str] = Field(
+        default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    )
     quantization_bits: int = Field(default=4, ge=4, le=16)
     optimizer: str = "paged_adamw_8bit"
     gradient_checkpointing: bool = True
@@ -78,6 +82,23 @@ class TrainingProfilerEvidence(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class TrainingDatasetManifest(BaseModel):
+    dataset_path: str
+    dataset_fingerprint: str
+    example_ids_fingerprint: str
+    split_seed: str
+    split_algorithm: str = "sha256_sorted_id"
+    total_examples: int
+    train_example_ids: list[str]
+    validation_example_ids: list[str]
+    train_ids_fingerprint: str
+    validation_ids_fingerprint: str
+    risk_level_counts: dict[str, int]
+    conversation_mode_counts: dict[str, int]
+    support_protocol_counts: dict[str, int]
+    notes: list[str] = Field(default_factory=list)
+
+
 class TrainingGate(StrEnum):
     APPROVED_LOW_MEDIUM_ONLY = "approved_low_medium_only"
     NO_CRISIS_EMERGENCY_MINOR = "no_crisis_emergency_minor"
@@ -100,7 +121,7 @@ class TrainingRunManifest(BaseModel):
     required_gates: list[TrainingGate] = Field(default_factory=list)
     allowed_risk_levels: list[str] = Field(default_factory=lambda: ["low", "medium"])
     forbidden_conversation_modes: list[str] = Field(
-        default_factory=lambda: ["crisis", "emergency", "minor_safety"]
+        default_factory=lambda: ["crisis", "emergency", "minor_support", "minor_safety"]
     )
     metrics_to_compare: list[str] = Field(
         default_factory=lambda: [
@@ -139,6 +160,7 @@ class TrainingDryRunReport(BaseModel):
     train_examples: int
     validation_examples: int
     estimated_optimizer_steps: int
+    dataset_manifest: TrainingDatasetManifest
     hardware_estimate: TrainingHardwareEstimate
     profiler_evidence: TrainingProfilerEvidence
     blocked_by_readiness: bool
@@ -209,8 +231,19 @@ def build_training_dry_run_report(
     if not examples:
         blocked_by_dataset_safety = True
         blocking_reasons.append("dataset_empty")
+    duplicate_ids = _find_duplicate_ids(examples)
+    if duplicate_ids:
+        blocked_by_dataset_safety = True
+        blocking_reasons.extend(
+            f"duplicate_training_example_id:{example_id}" for example_id in duplicate_ids
+        )
 
     for example in examples:
+        if example.reviewer_decision != ReviewDecision.APPROVED:
+            blocked_by_dataset_safety = True
+            blocking_reasons.append(
+                f"forbidden_reviewer_decision:{example.id}:{example.reviewer_decision.value}"
+            )
         if example.risk_level.value not in manifest.allowed_risk_levels:
             blocked_by_dataset_safety = True
             blocking_reasons.append(f"forbidden_risk_level:{example.id}:{example.risk_level.value}")
@@ -220,13 +253,14 @@ def build_training_dry_run_report(
                 f"forbidden_conversation_mode:{example.id}:{example.conversation_mode.value}"
             )
 
-    validation_examples = math.ceil(len(examples) * manifest.hyperparameters.validation_split)
+    dataset_manifest = build_training_dataset_manifest(
+        manifest=manifest,
+        examples=examples,
+    )
+    validation_examples = len(dataset_manifest.validation_example_ids)
     if len(examples) == 1:
-        validation_examples = 0
         warnings.append("validation_split_disabled_for_single_example")
-    elif len(examples) > 1:
-        validation_examples = max(1, min(validation_examples, len(examples) - 1))
-    train_examples = max(0, len(examples) - validation_examples)
+    train_examples = len(dataset_manifest.train_example_ids)
     effective_batch_size = (
         manifest.hyperparameters.batch_size
         * manifest.hyperparameters.gradient_accumulation_steps
@@ -254,6 +288,7 @@ def build_training_dry_run_report(
         train_examples=train_examples,
         validation_examples=validation_examples,
         estimated_optimizer_steps=estimated_optimizer_steps,
+        dataset_manifest=dataset_manifest,
         hardware_estimate=hardware_estimate,
         profiler_evidence=profiler_evidence,
         blocked_by_readiness=blocked_by_readiness,
@@ -261,6 +296,51 @@ def build_training_dry_run_report(
         blocked_by_hardware=blocked_by_hardware,
         blocking_reasons=blocking_reasons,
         warnings=warnings,
+    )
+
+
+def build_training_dataset_manifest(
+    *,
+    manifest: TrainingRunManifest,
+    examples: list[InstructionTrainingExample],
+) -> TrainingDatasetManifest:
+    validation_count = math.ceil(len(examples) * manifest.hyperparameters.validation_split)
+    if len(examples) == 1:
+        validation_count = 0
+    elif len(examples) > 1:
+        validation_count = max(1, min(validation_count, len(examples) - 1))
+
+    split_seed = (
+        f"{manifest.run_id}:{manifest.base_model}:{manifest.hyperparameters.validation_split}"
+    )
+    ranked_examples = sorted(
+        examples,
+        key=lambda example: _stable_split_key(example.id, split_seed),
+    )
+    validation_ids = sorted(example.id for example in ranked_examples[:validation_count])
+    train_ids = sorted(example.id for example in ranked_examples[validation_count:])
+
+    notes = ["Dataset fingerprint is computed from canonical JSON instruction examples."]
+    if not examples:
+        notes.append("Dataset is empty; training remains blocked.")
+    return TrainingDatasetManifest(
+        dataset_path=manifest.dataset_path,
+        dataset_fingerprint=_fingerprint_examples(examples),
+        example_ids_fingerprint=_fingerprint_ids(example.id for example in examples),
+        split_seed=split_seed,
+        total_examples=len(examples),
+        train_example_ids=train_ids,
+        validation_example_ids=validation_ids,
+        train_ids_fingerprint=_fingerprint_ids(train_ids),
+        validation_ids_fingerprint=_fingerprint_ids(validation_ids),
+        risk_level_counts=_count_values(example.risk_level.value for example in examples),
+        conversation_mode_counts=_count_values(
+            example.conversation_mode.value for example in examples
+        ),
+        support_protocol_counts=_count_values(
+            example.support_protocol.value for example in examples
+        ),
+        notes=notes,
     )
 
 
@@ -339,7 +419,10 @@ def parse_nvidia_smi_evidence(output: str) -> TrainingProfilerEvidence:
         gpu_vram_free_gb=round(free_mb / 1024, 2) if free_mb is not None else None,
         driver_version=parts[3],
         collection_command="nvidia-smi",
-        notes=["Profiler evidence collected from nvidia-smi; still verify with a real training run profiler."],
+        notes=[
+            "Profiler evidence collected from nvidia-smi; "
+            "still verify with a real training run profiler."
+        ],
     )
 
 
@@ -423,6 +506,41 @@ def _parse_float(raw_value: str) -> float | None:
         return None
 
 
+def _stable_split_key(example_id: str, split_seed: str) -> str:
+    return hashlib.sha256(f"{split_seed}:{example_id}".encode("utf-8")).hexdigest()
+
+
+def _fingerprint_examples(examples: list[InstructionTrainingExample]) -> str:
+    raw_examples = [
+        example.model_dump(mode="json")
+        for example in sorted(examples, key=lambda item: item.id)
+    ]
+    payload = json.dumps(raw_examples, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _fingerprint_ids(example_ids: Iterable[str]) -> str:
+    payload = json.dumps(sorted(example_ids), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _find_duplicate_ids(examples: list[InstructionTrainingExample]) -> list[str]:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for example in examples:
+        if example.id in seen:
+            duplicates.add(example.id)
+        seen.add(example.id)
+    return sorted(duplicates)
+
+
+def _count_values(values: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def write_training_dry_run_report(report: TrainingDryRunReport, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -446,6 +564,18 @@ def write_training_dry_run_markdown(report: TrainingDryRunReport, output_path: P
         f"- Blocked by readiness: {str(report.blocked_by_readiness).lower()}",
         f"- Blocked by dataset safety: {str(report.blocked_by_dataset_safety).lower()}",
         f"- Blocked by hardware: {str(report.blocked_by_hardware).lower()}",
+        "",
+        "## Dataset Manifest",
+        "",
+        f"- Dataset path: `{report.dataset_manifest.dataset_path}`",
+        f"- Dataset fingerprint: `{report.dataset_manifest.dataset_fingerprint}`",
+        f"- Example ids fingerprint: `{report.dataset_manifest.example_ids_fingerprint}`",
+        f"- Split seed: `{report.dataset_manifest.split_seed}`",
+        f"- Split algorithm: `{report.dataset_manifest.split_algorithm}`",
+        f"- Train ids: `{', '.join(report.dataset_manifest.train_example_ids)}`",
+        f"- Train ids fingerprint: `{report.dataset_manifest.train_ids_fingerprint}`",
+        f"- Validation ids: `{', '.join(report.dataset_manifest.validation_example_ids)}`",
+        f"- Validation ids fingerprint: `{report.dataset_manifest.validation_ids_fingerprint}`",
         "",
         "## Hardware Estimate",
         "",

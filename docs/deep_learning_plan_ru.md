@@ -56,8 +56,13 @@ Dry-run проверяет:
 
 - manifest status;
 - dataset size;
+- duplicate training example ids;
+- reviewer decision: only approved;
+- dataset fingerprint;
+- train/validation ids fingerprint;
+- deterministic split seed;
 - low/medium only;
-- отсутствие crisis/emergency/minor_safety;
+- отсутствие crisis/emergency/minor_support/minor_safety;
 - train/validation split;
 - estimated optimizer steps.
 - approximate VRAM/RAM estimate;
@@ -86,6 +91,7 @@ method
 dataset_path
 output_dir
 status
+dataset_manifest
 hyperparameters
 adapter_config
 hardware_profile
@@ -95,6 +101,29 @@ forbidden_conversation_modes
 metrics_to_compare
 notes
 ```
+
+## Dataset manifest
+
+Каждый dry-run должен сохранять проверяемую сводку датасета:
+
+```text
+dataset_path
+dataset_fingerprint
+example_ids_fingerprint
+split_seed
+split_algorithm
+total_examples
+train_example_ids
+validation_example_ids
+train_ids_fingerprint
+validation_ids_fingerprint
+risk_level_counts
+conversation_mode_counts
+support_protocol_counts
+notes
+```
+
+Если в approved training examples есть повторяющиеся `id`, dry-run должен быть `blocked=true`. Если example имеет `reviewer_decision != approved` или относится к minor/crisis/emergency mode, dry-run тоже должен блокироваться. Это защищает будущий fine-tuning от неявного дублирования, нечестного train/validation split и обхода expert review.
 
 ## Обязательные gates
 

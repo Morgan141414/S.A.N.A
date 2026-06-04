@@ -49,6 +49,9 @@ v2.0 не означает real-user testing и не означает клини
   - status `blocked_until_readiness`.
 - Training dry-run:
   - validates manifest and dataset;
+  - blocks duplicate/unapproved/minor/crisis/emergency training examples;
+  - records dataset fingerprint;
+  - records deterministic train/validation split ids and fingerprints;
   - computes train/validation split;
   - estimates optimizer steps;
   - estimates VRAM/RAM and hardware risk;
@@ -75,7 +78,7 @@ v2.0 не означает real-user testing и не означает клини
 7. Есть повторяемые evaluation reports
 8. Есть approved low/medium instruction example schema
 9. Есть draft training manifest
-10. Есть dry-run training report без изменения весов модели, с hardware estimate и profiler evidence source
+10. Есть dry-run training report без изменения весов модели, с dataset manifest, deterministic split, hardware estimate и profiler evidence source
 11. Есть rollback plan после fine-tuning
 ```
 
