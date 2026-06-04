@@ -12,6 +12,7 @@
 - `make evaluate` - P0 synthetic/red-team evaluation gate.
 - `make evaluate-readiness` - readiness decision, regression diff и expert review artifacts.
 - `make training-dry-run` - dry-run будущего LoRA/QLoRA без изменения весов модели.
+- `SANA_TRAINING_COLLECT_PROFILER=true make training-dry-run` - тот же dry-run с попыткой собрать базовый profiler evidence через `nvidia-smi`.
 - `make llm-smoke-ollama-local` - gated local LLM smoke только на synthetic-only сценариях.
 - Ollama user-local runtime - локальные модели без покупки API key.
 

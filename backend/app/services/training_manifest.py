@@ -2,6 +2,8 @@ from pathlib import Path
 import json
 import math
 import re
+import shutil
+import subprocess
 
 from enum import StrEnum
 
@@ -60,6 +62,19 @@ class TrainingHardwareEstimate(BaseModel):
     fits_system_memory: bool
     risk_level: str
     confidence: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class TrainingProfilerEvidence(BaseModel):
+    source: str = "not_collected"
+    gpu_detected: bool | None = None
+    gpu_name: str | None = None
+    gpu_vram_total_gb: float | None = None
+    gpu_vram_free_gb: float | None = None
+    system_ram_total_gb: float | None = None
+    cuda_available: bool | None = None
+    driver_version: str | None = None
+    collection_command: str | None = None
     notes: list[str] = Field(default_factory=list)
 
 
@@ -125,6 +140,7 @@ class TrainingDryRunReport(BaseModel):
     validation_examples: int
     estimated_optimizer_steps: int
     hardware_estimate: TrainingHardwareEstimate
+    profiler_evidence: TrainingProfilerEvidence
     blocked_by_readiness: bool
     blocked_by_dataset_safety: bool
     blocked_by_hardware: bool
@@ -180,6 +196,7 @@ def build_training_dry_run_report(
     *,
     manifest: TrainingRunManifest,
     examples: list[InstructionTrainingExample],
+    profiler_evidence: TrainingProfilerEvidence | None = None,
 ) -> TrainingDryRunReport:
     blocking_reasons: list[str] = []
     warnings: list[str] = []
@@ -220,6 +237,7 @@ def build_training_dry_run_report(
         else 0
     )
     hardware_estimate = estimate_training_hardware(manifest)
+    profiler_evidence = profiler_evidence or build_training_profiler_evidence(collect=False)
     if not hardware_estimate.fits_gpu_memory:
         blocked_by_hardware = True
         blocking_reasons.append("estimated_vram_exceeds_gpu")
@@ -237,11 +255,91 @@ def build_training_dry_run_report(
         validation_examples=validation_examples,
         estimated_optimizer_steps=estimated_optimizer_steps,
         hardware_estimate=hardware_estimate,
+        profiler_evidence=profiler_evidence,
         blocked_by_readiness=blocked_by_readiness,
         blocked_by_dataset_safety=blocked_by_dataset_safety,
         blocked_by_hardware=blocked_by_hardware,
         blocking_reasons=blocking_reasons,
         warnings=warnings,
+    )
+
+
+def build_training_profiler_evidence(*, collect: bool = False) -> TrainingProfilerEvidence:
+    if not collect:
+        return TrainingProfilerEvidence(
+            notes=["Profiler evidence was not collected; hardware section is heuristic only."]
+        )
+
+    command = shutil.which("nvidia-smi")
+    if not command:
+        return TrainingProfilerEvidence(
+            source="nvidia_smi_unavailable",
+            gpu_detected=False,
+            collection_command="nvidia-smi",
+            notes=["nvidia-smi is unavailable; cannot collect GPU profiler evidence."],
+        )
+
+    try:
+        result = subprocess.run(
+            [
+                command,
+                "--query-gpu=name,memory.total,memory.free,driver_version",
+                "--format=csv,noheader,nounits",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return TrainingProfilerEvidence(
+            source="nvidia_smi_error",
+            gpu_detected=False,
+            collection_command="nvidia-smi",
+            notes=[f"nvidia-smi profiler collection failed: {exc.__class__.__name__}"],
+        )
+
+    if result.returncode != 0:
+        return TrainingProfilerEvidence(
+            source="nvidia_smi_error",
+            gpu_detected=False,
+            collection_command="nvidia-smi",
+            notes=["nvidia-smi returned a non-zero exit code."],
+        )
+
+    return parse_nvidia_smi_evidence(result.stdout)
+
+
+def parse_nvidia_smi_evidence(output: str) -> TrainingProfilerEvidence:
+    line = next((candidate.strip() for candidate in output.splitlines() if candidate.strip()), "")
+    if not line:
+        return TrainingProfilerEvidence(
+            source="nvidia_smi_empty",
+            gpu_detected=False,
+            collection_command="nvidia-smi",
+            notes=["nvidia-smi returned no GPU rows."],
+        )
+
+    parts = [part.strip() for part in line.split(",")]
+    if len(parts) < 4:
+        return TrainingProfilerEvidence(
+            source="nvidia_smi_malformed",
+            gpu_detected=None,
+            collection_command="nvidia-smi",
+            notes=["nvidia-smi output did not match expected CSV shape."],
+        )
+
+    total_mb = _parse_float(parts[1])
+    free_mb = _parse_float(parts[2])
+    return TrainingProfilerEvidence(
+        source="nvidia_smi",
+        gpu_detected=True,
+        gpu_name=parts[0],
+        gpu_vram_total_gb=round(total_mb / 1024, 2) if total_mb is not None else None,
+        gpu_vram_free_gb=round(free_mb / 1024, 2) if free_mb is not None else None,
+        driver_version=parts[3],
+        collection_command="nvidia-smi",
+        notes=["Profiler evidence collected from nvidia-smi; still verify with a real training run profiler."],
     )
 
 
@@ -318,6 +416,13 @@ def _infer_model_billions(model_name: str) -> float:
     return 8.0
 
 
+def _parse_float(raw_value: str) -> float | None:
+    try:
+        return float(raw_value.strip())
+    except ValueError:
+        return None
+
+
 def write_training_dry_run_report(report: TrainingDryRunReport, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -354,6 +459,16 @@ def write_training_dry_run_markdown(report: TrainingDryRunReport, output_path: P
         f"- Fits system memory: {str(report.hardware_estimate.fits_system_memory).lower()}",
         f"- Hardware risk: `{report.hardware_estimate.risk_level}`",
         f"- Estimate confidence: `{report.hardware_estimate.confidence}`",
+        "",
+        "## Profiler Evidence",
+        "",
+        f"- Source: `{report.profiler_evidence.source}`",
+        f"- GPU detected: {report.profiler_evidence.gpu_detected}",
+        f"- GPU: `{report.profiler_evidence.gpu_name}`",
+        f"- Total VRAM GB: {report.profiler_evidence.gpu_vram_total_gb}",
+        f"- Free VRAM GB: {report.profiler_evidence.gpu_vram_free_gb}",
+        f"- CUDA available: {report.profiler_evidence.cuda_available}",
+        f"- Driver version: `{report.profiler_evidence.driver_version}`",
         "",
         "## Blocking Reasons",
         "",

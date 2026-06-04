@@ -44,16 +44,37 @@ python - <<PY
 from pathlib import Path
 
 from app.services.training_manifest import (
+    build_training_profiler_evidence,
     build_training_dry_run_report,
+    build_draft_training_manifest,
     load_instruction_training_examples,
     load_training_manifest,
     write_training_dry_run_markdown,
     write_training_dry_run_report,
+    write_training_manifest,
 )
 
-manifest = load_training_manifest(Path("$MANIFEST_PATH"))
-examples = load_instruction_training_examples(Path("$DATASET_PATH"))
-report = build_training_dry_run_report(manifest=manifest, examples=examples)
+manifest_path = Path("$MANIFEST_PATH")
+dataset_path = Path("$DATASET_PATH")
+if not manifest_path.exists():
+    manifest = build_draft_training_manifest(
+        run_id="draft_qlora_001",
+        base_model="llama3.1:8b",
+        dataset_path=str(dataset_path),
+        output_dir=str(Path("$REPORT_PATH").parent),
+    )
+    write_training_manifest(manifest, manifest_path)
+else:
+    manifest = load_training_manifest(manifest_path)
+
+examples = load_instruction_training_examples(dataset_path) if dataset_path.exists() else []
+collect_profiler = "${SANA_TRAINING_COLLECT_PROFILER:-}".lower() in {"1", "true", "yes"}
+profiler_evidence = build_training_profiler_evidence(collect=collect_profiler)
+report = build_training_dry_run_report(
+    manifest=manifest,
+    examples=examples,
+    profiler_evidence=profiler_evidence,
+)
 write_training_dry_run_report(report, Path("$REPORT_PATH"))
 write_training_dry_run_markdown(report, Path("$MARKDOWN_REPORT_PATH"))
 print(report.model_dump_json(indent=2))

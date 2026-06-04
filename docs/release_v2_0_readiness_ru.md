@@ -18,6 +18,7 @@
 - Добавлен draft training manifest для будущего LoRA/QLoRA без запуска обучения.
 - Добавлен `make training-dry-run` без изменения весов модели.
 - Добавлен hardware/memory estimate в training dry-run.
+- Добавлен profiler evidence contract в training dry-run: отчет показывает, основан ли hardware блок на эвристике или на фактическом снимке окружения через `nvidia-smi`.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово
@@ -29,4 +30,4 @@
 
 ## Следующий шаг
 
-Расширить synthetic/red-team dataset, approved low/medium examples и добавить profiler evidence после установки training dependencies.
+Расширить synthetic/red-team dataset, approved low/medium examples и добавить real training profiler после установки training dependencies.

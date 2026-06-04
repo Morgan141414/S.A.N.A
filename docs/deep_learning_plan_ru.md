@@ -36,6 +36,8 @@ Dry-run показывает будущий запуск обучения без
 make training-dry-run
 ```
 
+Если `training_runs/draft_training_manifest.json` еще не существует, команда создает безопасный draft manifest со статусом `blocked_until_readiness`. Если approved dataset еще не создан, отчет все равно создается, но остается заблокированным с причиной `dataset_empty`.
+
 Входы:
 
 ```text
@@ -61,10 +63,19 @@ Dry-run проверяет:
 - approximate VRAM/RAM estimate;
 - hardware risk;
 - GPU availability.
+- profiler evidence source.
 
 Если manifest имеет `status=blocked_until_readiness`, dry-run должен быть `blocked=true`.
 
 Hardware estimate является эвристикой, а не разрешением на обучение. Если estimate близок к лимиту VRAM, dry-run должен явно показать warning. На RTX 3050 8GB 8B QLoRA считается tight/risky target, а full LoRA для 8B должен блокироваться по памяти.
+
+Profiler evidence показывает, есть ли фактический снимок окружения или отчет основан только на эвристике. По умолчанию evidence имеет `source=not_collected`, чтобы dry-run не зависел от драйверов и training dependencies. Для ручной проверки сервера можно включить сбор:
+
+```bash
+SANA_TRAINING_COLLECT_PROFILER=true make training-dry-run
+```
+
+Сейчас profiler evidence может собрать базовые данные через `nvidia-smi`: имя GPU, общий VRAM, свободный VRAM и версию драйвера. Это все еще не заменяет реальный profiler первого training run.
 
 ## Минимальная training manifest schema
 

@@ -9,10 +9,12 @@ from app.services.training_manifest import (
     TrainingMethod,
     TrainingRunManifest,
     TrainingRunStatus,
+    build_training_profiler_evidence,
     build_training_dry_run_report,
     build_draft_training_manifest,
     estimate_training_hardware,
     load_training_manifest,
+    parse_nvidia_smi_evidence,
     write_training_dry_run_markdown,
     write_training_dry_run_report,
     write_training_manifest,
@@ -98,6 +100,7 @@ def test_training_dry_run_report_is_blocked_until_readiness() -> None:
     assert report.validation_examples == 0
     assert report.estimated_optimizer_steps == 1
     assert report.hardware_estimate.risk_level in {"low", "medium"}
+    assert report.profiler_evidence.source == "not_collected"
     assert report.blocked_by_readiness
     assert not report.blocked_by_dataset_safety
     assert "manifest_blocked_until_readiness" in report.blocking_reasons
@@ -202,6 +205,35 @@ def test_training_hardware_estimate_handles_small_model_and_missing_gpu() -> Non
     assert any("GPU unavailable" in warning for warning in missing_gpu_report.warnings)
 
 
+def test_training_profiler_evidence_defaults_to_not_collected() -> None:
+    evidence = build_training_profiler_evidence(collect=False)
+
+    assert evidence.source == "not_collected"
+    assert evidence.gpu_detected is None
+    assert any("not collected" in note for note in evidence.notes)
+
+
+def test_training_profiler_evidence_parses_nvidia_smi_csv() -> None:
+    evidence = parse_nvidia_smi_evidence(
+        "NVIDIA GeForce RTX 3050, 8192, 4096, 550.54.14\n"
+    )
+
+    assert evidence.source == "nvidia_smi"
+    assert evidence.gpu_detected is True
+    assert evidence.gpu_name == "NVIDIA GeForce RTX 3050"
+    assert evidence.gpu_vram_total_gb == 8.0
+    assert evidence.gpu_vram_free_gb == 4.0
+    assert evidence.driver_version == "550.54.14"
+
+
+def test_training_profiler_evidence_handles_malformed_nvidia_smi_csv() -> None:
+    evidence = parse_nvidia_smi_evidence("unexpected output\n")
+
+    assert evidence.source == "nvidia_smi_malformed"
+    assert evidence.gpu_detected is None
+    assert any("expected CSV" in note for note in evidence.notes)
+
+
 def test_training_dry_run_reports_can_be_written(tmp_path: Path) -> None:
     manifest = build_draft_training_manifest(
         run_id="draft_qlora_001",
@@ -220,3 +252,5 @@ def test_training_dry_run_reports_can_be_written(tmp_path: Path) -> None:
     markdown = markdown_path.read_text(encoding="utf-8")
     assert "# S.A.N.A. Training Dry Run" in markdown
     assert "## Hardware Estimate" in markdown
+    assert "## Profiler Evidence" in markdown
+    assert '"profiler_evidence"' in json_path.read_text(encoding="utf-8")
