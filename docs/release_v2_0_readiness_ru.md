@@ -24,6 +24,7 @@
 - Добавлен строгий readiness profile `v2_training`: отдельный gate для deep learning, который блокирует обучение до `>=200` сценариев, baseline comparison, clinician-authored coverage и per-protocol coverage.
 - `v2_training` profile теперь проверяет evidence artifacts: approved examples, training manifest, dry-run report, local model comparison и rollback plan.
 - Добавлен `docs/training_rollback_plan_ru.md` как черновой rollback contract для будущих adapter-based training runs.
+- Evaluation fixture расширен до 50 сценариев: добавлены первые 6 `clinician_authored` adult low/medium cases без real-user data.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово

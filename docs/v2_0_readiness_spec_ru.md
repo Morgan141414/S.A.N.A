@@ -57,6 +57,10 @@ v2.0 не означает real-user testing и не означает клини
   - estimates VRAM/RAM and hardware risk;
   - records profiler evidence source;
   - does not modify model weights.
+- Initial clinician-authored evaluation coverage:
+  - adult low/medium support cases;
+  - general support, anxiety, panic, depressive, grief/loneliness and conflict/stress;
+  - no real-user data.
 
 ## Почему это важно
 

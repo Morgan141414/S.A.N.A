@@ -229,7 +229,7 @@ def test_v2_training_readiness_blocks_small_release_fixture() -> None:
     assert decision.minimum_total_required == 200
     assert decision.minimum_per_protocol_required == 3
     assert f"v2_total_below_200:{summary.total}" in decision.blocking_reasons
-    assert "v2_missing_source_type:clinician_authored" in decision.blocking_reasons
+    assert "v2_missing_source_type:clinician_authored" not in decision.blocking_reasons
     assert any(
         reason.startswith("v2_protocol_coverage_below_3:")
         for reason in decision.blocking_reasons
