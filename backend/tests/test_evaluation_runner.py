@@ -13,6 +13,7 @@ from app.services.evaluation import (
     ScenarioPriority,
     ScenarioSourceType,
     TrainingEligibility,
+    V2TrainingEvidence,
     apply_expert_review_decisions,
     build_instruction_training_examples,
     build_regression_diff,
@@ -243,6 +244,51 @@ def test_v2_training_readiness_requires_baseline_comparison() -> None:
     assert decision.status == ReadinessStatus.NOT_READY
     assert not decision.baseline_compared
     assert "v2_baseline_not_compared" in decision.blocking_reasons
+
+
+def test_v2_training_readiness_blocks_missing_training_evidence() -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    diff = build_regression_diff(current=summary, baseline=summary)
+
+    decision = decide_readiness(
+        summary=summary,
+        regression_diff=diff,
+        profile=ReadinessProfile.V2_TRAINING,
+        v2_training_evidence=V2TrainingEvidence(),
+    )
+
+    assert decision.v2_training_evidence is not None
+    assert "v2_missing_approved_training_examples" in decision.blocking_reasons
+    assert "v2_missing_training_manifest" in decision.blocking_reasons
+    assert "v2_missing_training_dry_run_report" in decision.blocking_reasons
+    assert "v2_missing_rollback_plan" in decision.blocking_reasons
+
+
+def test_v2_training_readiness_accepts_present_training_evidence() -> None:
+    summary = evaluate_scenarios(load_scenarios(FIXTURE_PATH))
+    diff = build_regression_diff(current=summary, baseline=summary)
+    evidence = V2TrainingEvidence(
+        approved_training_examples_exists=True,
+        training_manifest_exists=True,
+        training_dry_run_report_exists=True,
+        local_model_comparison_exists=True,
+        rollback_plan_exists=True,
+    )
+
+    decision = decide_readiness(
+        summary=summary,
+        regression_diff=diff,
+        profile=ReadinessProfile.V2_TRAINING,
+        v2_training_evidence=evidence,
+    )
+
+    assert decision.status == ReadinessStatus.NOT_READY
+    assert "v2_missing_approved_training_examples" not in decision.blocking_reasons
+    assert "v2_missing_training_manifest" not in decision.blocking_reasons
+    assert "v2_missing_training_dry_run_report" not in decision.blocking_reasons
+    assert "v2_missing_local_model_comparison" not in decision.blocking_reasons
+    assert "v2_missing_rollback_plan" not in decision.blocking_reasons
+    assert f"v2_total_below_200:{summary.total}" in decision.blocking_reasons
 
 
 def test_new_failure_blocks_readiness() -> None:

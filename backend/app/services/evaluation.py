@@ -153,6 +153,30 @@ class TrainingEligibility(StrEnum):
     ELIGIBLE_AFTER_APPROVAL = "eligible_after_approval"
 
 
+class V2TrainingEvidence(BaseModel):
+    approved_training_examples_path: str = "evaluation_reports/approved_instruction_examples.json"
+    training_manifest_path: str = "training_runs/draft_training_manifest.json"
+    training_dry_run_report_path: str = "training_runs/dry_run_report.json"
+    local_model_comparison_path: str = "docs/local_model_comparison_matrix_ru.md"
+    rollback_plan_path: str = "docs/training_rollback_plan_ru.md"
+    approved_training_examples_exists: bool = False
+    training_manifest_exists: bool = False
+    training_dry_run_report_exists: bool = False
+    local_model_comparison_exists: bool = False
+    rollback_plan_exists: bool = False
+
+    @property
+    def missing_reasons(self) -> list[str]:
+        checks = (
+            ("v2_missing_approved_training_examples", self.approved_training_examples_exists),
+            ("v2_missing_training_manifest", self.training_manifest_exists),
+            ("v2_missing_training_dry_run_report", self.training_dry_run_report_exists),
+            ("v2_missing_local_model_comparison", self.local_model_comparison_exists),
+            ("v2_missing_rollback_plan", self.rollback_plan_exists),
+        )
+        return [reason for reason, exists in checks if not exists]
+
+
 class ReadinessDecision(BaseModel):
     status: ReadinessStatus
     blocking_reasons: list[str]
@@ -164,6 +188,7 @@ class ReadinessDecision(BaseModel):
     profile: ReadinessProfile = ReadinessProfile.RELEASE
     minimum_total_required: int = 40
     minimum_per_protocol_required: int = 0
+    v2_training_evidence: V2TrainingEvidence | None = None
 
 
 class ExpertReviewQueueItem(BaseModel):
@@ -377,6 +402,7 @@ def decide_readiness(
     summary: EvaluationSummary,
     regression_diff: RegressionDiff | None = None,
     profile: ReadinessProfile = ReadinessProfile.RELEASE,
+    v2_training_evidence: V2TrainingEvidence | None = None,
 ) -> ReadinessDecision:
     blocking_reasons: list[str] = []
     minimum_total_required = 40
@@ -394,6 +420,7 @@ def decide_readiness(
     if profile == ReadinessProfile.V2_TRAINING:
         minimum_total_required = 200
         minimum_per_protocol_required = 3
+        v2_training_evidence = v2_training_evidence or V2TrainingEvidence()
         if summary.total < minimum_total_required:
             blocking_reasons.append(f"v2_total_below_200:{summary.total}")
         if regression_diff is None:
@@ -412,6 +439,7 @@ def decide_readiness(
                     f"v2_protocol_coverage_below_{minimum_per_protocol_required}:"
                     f"{protocol.value}:{count}"
                 )
+        blocking_reasons.extend(v2_training_evidence.missing_reasons)
 
     return ReadinessDecision(
         status=ReadinessStatus.NOT_READY if blocking_reasons else ReadinessStatus.READY,
@@ -426,6 +454,7 @@ def decide_readiness(
         profile=profile,
         minimum_total_required=minimum_total_required,
         minimum_per_protocol_required=minimum_per_protocol_required,
+        v2_training_evidence=v2_training_evidence,
     )
 
 
@@ -556,9 +585,32 @@ def write_readiness_decision(decision: ReadinessDecision, output_path: Path) -> 
         f"- Baseline compared: {str(decision.baseline_compared).lower()}",
         f"- Blocking regressions: {str(decision.has_blocking_regressions).lower()}",
         "",
+    ]
+    if decision.v2_training_evidence is not None:
+        evidence = decision.v2_training_evidence
+        lines.extend(
+            [
+                "## V2 Training Evidence",
+                "",
+                f"- Approved examples: `{evidence.approved_training_examples_path}` "
+                f"exists={str(evidence.approved_training_examples_exists).lower()}",
+                f"- Training manifest: `{evidence.training_manifest_path}` "
+                f"exists={str(evidence.training_manifest_exists).lower()}",
+                f"- Training dry-run report: `{evidence.training_dry_run_report_path}` "
+                f"exists={str(evidence.training_dry_run_report_exists).lower()}",
+                f"- Local model comparison: `{evidence.local_model_comparison_path}` "
+                f"exists={str(evidence.local_model_comparison_exists).lower()}",
+                f"- Rollback plan: `{evidence.rollback_plan_path}` "
+                f"exists={str(evidence.rollback_plan_exists).lower()}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
         "## Blocking Reasons",
         "",
-    ]
+        ]
+    )
     if decision.blocking_reasons:
         lines.extend(f"- `{reason}`" for reason in decision.blocking_reasons)
     else:
@@ -895,6 +947,46 @@ def _readiness_profile_from_env() -> ReadinessProfile:
         ) from exc
 
 
+def _build_v2_training_evidence(root_dir: Path) -> V2TrainingEvidence:
+    approved_training_examples_path = Path(
+        os.getenv(
+            "SANA_APPROVED_TRAINING_EXAMPLES_PATH",
+            "evaluation_reports/approved_instruction_examples.json",
+        )
+    )
+    training_manifest_path = Path(
+        os.getenv("SANA_TRAINING_MANIFEST_PATH", "training_runs/draft_training_manifest.json")
+    )
+    training_dry_run_report_path = Path(
+        os.getenv("SANA_TRAINING_DRY_RUN_REPORT_PATH", "training_runs/dry_run_report.json")
+    )
+    local_model_comparison_path = Path(
+        os.getenv(
+            "SANA_LOCAL_MODEL_COMPARISON_PATH",
+            "docs/local_model_comparison_matrix_ru.md",
+        )
+    )
+    rollback_plan_path = Path(
+        os.getenv("SANA_ROLLBACK_PLAN_PATH", "docs/training_rollback_plan_ru.md")
+    )
+
+    def exists(path: Path) -> bool:
+        return (path if path.is_absolute() else root_dir / path).is_file()
+
+    return V2TrainingEvidence(
+        approved_training_examples_path=str(approved_training_examples_path),
+        training_manifest_path=str(training_manifest_path),
+        training_dry_run_report_path=str(training_dry_run_report_path),
+        local_model_comparison_path=str(local_model_comparison_path),
+        rollback_plan_path=str(rollback_plan_path),
+        approved_training_examples_exists=exists(approved_training_examples_path),
+        training_manifest_exists=exists(training_manifest_path),
+        training_dry_run_report_exists=exists(training_dry_run_report_path),
+        local_model_comparison_exists=exists(local_model_comparison_path),
+        rollback_plan_exists=exists(rollback_plan_path),
+    )
+
+
 def main() -> int:
     default_path = (
         Path(__file__).resolve().parents[2]
@@ -913,6 +1005,12 @@ def main() -> int:
     review_decisions_path = _optional_cli_path(9)
     training_examples_path = _optional_cli_path(10)
     readiness_profile = _readiness_profile_from_env()
+    root_dir = Path(__file__).resolve().parents[3]
+    v2_training_evidence = (
+        _build_v2_training_evidence(root_dir)
+        if readiness_profile == ReadinessProfile.V2_TRAINING
+        else None
+    )
     scenarios = load_scenarios(scenario_path)
     summary = evaluate_scenarios(scenarios)
     if output_path is not None:
@@ -953,6 +1051,7 @@ def main() -> int:
                 summary=summary,
                 regression_diff=regression_diff,
                 profile=readiness_profile,
+                v2_training_evidence=v2_training_evidence,
             ),
             readiness_path,
         )

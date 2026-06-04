@@ -22,6 +22,8 @@
 - Добавлен dataset manifest в training dry-run: fingerprint датасета, deterministic split seed, train/validation ids и id fingerprints.
 - Усилена dataset safety validation: duplicate ids, `reviewer_decision != approved`, crisis/emergency/minor modes блокируют dry-run.
 - Добавлен строгий readiness profile `v2_training`: отдельный gate для deep learning, который блокирует обучение до `>=200` сценариев, baseline comparison, clinician-authored coverage и per-protocol coverage.
+- `v2_training` profile теперь проверяет evidence artifacts: approved examples, training manifest, dry-run report, local model comparison и rollback plan.
+- Добавлен `docs/training_rollback_plan_ru.md` как черновой rollback contract для будущих adapter-based training runs.
 - Зафиксированы gates перед deep learning.
 
 ## Не готово

@@ -90,6 +90,26 @@ SANA_READINESS_PROFILE=v2_training make evaluate-readiness
 
 Обычный `make evaluate-readiness` отвечает на вопрос "стабилен ли текущий release/evaluation layer?". Профиль `v2_training` отвечает на другой вопрос: "можно ли уже начинать обучение модели?". Для текущего этапа `v2_training` должен возвращать `not_ready`, пока не закрыты dataset scale, per-protocol coverage, clinician-authored coverage, baseline comparison и training artifacts.
 
+Профиль `v2_training` также проверяет наличие evidence artifacts:
+
+```text
+evaluation_reports/approved_instruction_examples.json
+training_runs/draft_training_manifest.json
+training_runs/dry_run_report.json
+docs/local_model_comparison_matrix_ru.md
+docs/training_rollback_plan_ru.md
+```
+
+Пути можно переопределить через env:
+
+```text
+SANA_APPROVED_TRAINING_EXAMPLES_PATH
+SANA_TRAINING_MANIFEST_PATH
+SANA_TRAINING_DRY_RUN_REPORT_PATH
+SANA_LOCAL_MODEL_COMPARISON_PATH
+SANA_ROLLBACK_PLAN_PATH
+```
+
 ## Ожидаемый момент fine-tuning
 
 Первый эксперимент LoRA/QLoRA можно планировать после v2.x readiness gates, когда:
